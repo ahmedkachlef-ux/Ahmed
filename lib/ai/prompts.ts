@@ -65,7 +65,11 @@ Chaque bloc: { "id": string, "items": string[], "justification": string, "source
 
 Les ids de "sources" doivent correspondre à ceux de l'EVIDENCE; tu peux aussi rajouter tes propres entrées dans le tableau racine \`sources\` si tu cites une source mentionnée dans l'EVIDENCE mais pas encore listée.`;
 
-/** User message for Anthropic (the system prompt already carries the rules). */
+/**
+ * User message when NO scraped evidence is available (scraper blocked or empty).
+ * Explicitly overrides rule 9 of the system prompt so the model can rely on its
+ * training knowledge — but forbids `verified` status and caps confidence.
+ */
 export function userPrompt(
   companyName: string,
   hints?: {
@@ -80,7 +84,16 @@ export function userPrompt(
 
 Langue de sortie: ${lang === "fr" ? "français" : lang === "en" ? "anglais" : "arabe"}.
 
-Génère le Business Model Canvas complet, avec analyse synthétique, en respectant toutes les règles et le schéma JSON fourni. Si tu ne connais pas l'entreprise avec certitude, marque les blocs concernés \`incomplete\` plutôt que d'inventer.`;
+## MODE SANS EVIDENCE
+Aucune pièce EVIDENCE n'a été collectée pour cette analyse (scraping bloqué ou résultats vides). La règle 9 du system prompt est donc SUSPENDUE pour cette requête:
+
+- Tu PEUX créer tes propres entrées dans le tableau racine \`sources\` en te basant sur tes connaissances (site officiel probable, Wikipédia, presse économique connue). Mets \`rank\` ≥ 4 pour ces entrées.
+- Référence ces ids que tu as créés dans le champ \`sources\` de chaque bloc.
+- Aucun bloc ne peut être \`status: "verified"\`. Utilise \`estimated\` (confidence ≤ 70) ou \`incomplete\` (confidence ≤ 30).
+- Si tu ne connais PAS du tout l'entreprise, marque TOUS les blocs \`incomplete\` plutôt que d'inventer.
+- Dans \`analysis.coherence.notes\`, indique explicitement que l'analyse s'est faite sans sources externes vérifiées.
+
+Génère le Business Model Canvas complet en respectant le schéma JSON. L'entreprise \`${companyName}\` doit être analysée SPÉCIFIQUEMENT — ne produis pas un BMC générique.`;
 }
 
 /**

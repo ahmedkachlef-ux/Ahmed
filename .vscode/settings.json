@@ -1,0 +1,6 @@
+{
+  "claude-code.permissionMode": "normal",
+  "editor.formatOnSave": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}

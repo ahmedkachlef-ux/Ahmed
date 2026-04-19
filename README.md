@@ -9,8 +9,9 @@ Pas de hallucinations : chaque bloc du BMC est tracé jusqu'à ses sources, scor
 ## Stack
 
 - **Frontend** — Next.js 14 (App Router) · TypeScript · Tailwind CSS · UI primitives shadcn-style inline · Framer Motion
-- **IA** — Anthropic SDK (`@anthropic-ai/sdk`), modèle `claude-opus-4-7`, **adaptive thinking** + **prompt caching** sur le system prompt stable
-- **Sortie structurée** — JSON Schema strict côté API + validation Zod côté serveur
+- **Collecte réelle** — scraping DuckDuckGo (HTML, sans clé) + Wikipedia REST API + fetch du site officiel, avec classement automatique des sources en 7 tiers de fiabilité
+- **LLM** — **OpenRouter** (modèle gratuit `meta-llama/llama-3.3-70b-instruct:free` par défaut) en priorité, fallback **Anthropic** (`claude-opus-4-7`, adaptive thinking + prompt caching), fallback mock déterministe
+- **Sortie structurée** — JSON Schema + validation Zod + `parseAndRepair` qui répare les champs manquants et extrait le JSON même s'il est enveloppé dans du markdown
 - **Stockage** — Adapter file-system (`data/analyses/*.json`, `data/feedback/*.json`) — interface `Store` swappable vers Postgres / MongoDB
 - **Streaming** — NDJSON streaming pour exposer en temps réel les étapes du pipeline
 
@@ -20,11 +21,29 @@ Pas de hallucinations : chaque bloc du BMC est tracé jusqu'à ses sources, scor
 
 ```bash
 npm install
-cp .env.example .env.local   # ajoutez ANTHROPIC_API_KEY si vous voulez le mode "live"
+cp .env.example .env.local
+# → édite .env.local et colle ta clé OpenRouter (gratuite)
 npm run dev
 ```
 
-Sans clé Anthropic, l'app tourne en **mode mock** : un BMC déterministe de démonstration est généré pour démontrer l'interface et le pipeline de bout en bout.
+Ouvre http://localhost:3000.
+
+### Obtenir une clé OpenRouter gratuite (2 minutes)
+
+1. Va sur https://openrouter.ai/ et crée un compte (pas de CB requise pour le tier gratuit).
+2. Va sur https://openrouter.ai/keys et crée une clé.
+3. Colle-la dans `.env.local` : `OPENROUTER_API_KEY=sk-or-v1-…`
+4. Redémarre `npm run dev`.
+
+### Priorité des providers
+
+| Clé présente          | Mode                       | Modèle par défaut                             |
+| --------------------- | -------------------------- | --------------------------------------------- |
+| `OPENROUTER_API_KEY`  | **OpenRouter** (réel)      | `meta-llama/llama-3.3-70b-instruct:free`      |
+| `ANTHROPIC_API_KEY`   | Anthropic (réel, payant)   | `claude-opus-4-7`                             |
+| aucune                | mock déterministe          | —                                             |
+
+Seule **une** clé suffit. Si tu mets les deux, OpenRouter gagne (ordre modifiable dans `lib/ai/pipeline.ts` → `selectMode`).
 
 ---
 
@@ -83,18 +102,22 @@ components/
   Navbar.tsx
 
 lib/
-  types.ts                                     ← types (BlockId, BmcBlock, BmcAnalysis,
-                                                 ProgressEvent, Feedback, BLOCK_META)
+  types.ts                                     ← BlockId, BmcBlock, BmcAnalysis, ProgressEvent…
   bmc-schema.ts                                ← Zod + JSON Schema strict
   utils.ts                                     ← cn, slugify, shortId, format helpers
   ai/
-    client.ts                                  ← getAnthropic, MODEL, EFFORT, isLiveMode
-    prompts.ts                                 ← SYSTEM_PROMPT (stable, cacheable) + userPrompt
-    validators.ts                              ← parseAndRepair, coherenceWarnings, extractText
-    pipeline.ts                                ← runPipeline (search→collect→generate→validate→analyze)
-    mock.ts                                    ← BMC déterministe sans clé API
+    openrouter.ts                              ← OpenRouter client + extractJsonObject
+    client.ts                                  ← Anthropic client (fallback)
+    prompts.ts                                 ← SYSTEM_PROMPT + userPromptWithEvidence
+    validators.ts                              ← parseAndRepair, coherenceWarnings
+    pipeline.ts                                ← runPipeline + selectMode (OR > Anthropic > mock)
+    mock.ts                                    ← BMC déterministe (no key)
   sources/
-    ranking.ts                                 ← SOURCE_TIERS (1–7), trustScore, rankSources, inferRank
+    fetcher.ts                                 ← fetchText + htmlToText
+    search.ts                                  ← DuckDuckGo HTML scrape
+    wikipedia.ts                               ← wikiSummary + wikiSearch
+    collector.ts                               ← collectEvidence orchestrator
+    ranking.ts                                 ← SOURCE_TIERS (1–7), inferRank, rankSources
   storage/
     index.ts                                   ← Store interface + toSummary
     fs-store.ts                                ← implémentation file-system
@@ -106,12 +129,24 @@ data/                                          ← persisté (gitignored)
 ## Pipeline IA
 
 ```
-search    →  collect   →  generate            →  validate         →  analyze
-identifie    sources       Claude Opus 4.7        parse JSON,         SWOT, cohérence,
-sources      hiérarchisées adaptive thinking      Zod, repair         innovation lens
-                           prompt caching         coherence checks    recommendations
-                           output_config: JSON
+search              collect                    generate              validate              analyze
+──────              ───────                    ────────              ────────              ───────
+DuckDuckGo HTML  →  fetch parallel 6 pages  →  OpenRouter LLM     →  extractJsonObject  →  coherenceWarnings
+Wikipedia REST      htmlToText (strip tags)    system: règles BMC    parseAndRepair        SWOT, innovation
+Site officiel       classify + rank 1-7        user: evidence ids    Zod schema            recommendations
+                                               response_format:      fallback mock
+                                               json_object
 ```
+
+### Collecte réelle (sans clé, gratuite)
+
+`lib/sources/collector.ts` orchestre la collecte :
+
+1. **Wikipedia summary** (REST API `api/rest_v1/page/summary`) en FR et EN — résout le titre canonique via `list=search` si besoin.
+2. **DuckDuckGo HTML** (`html.duckduckgo.com/html/?q=...`) sur 5 angles : business model, revenus/clients, secteur, partenaires, mission — déduplication par URL.
+3. **Site officiel** fetché directement si l'utilisateur le fournit en filtre.
+4. **Top 6 URLs** fetchées en parallèle avec timeout 8s, UA custom, `htmlToText` (strip `<script>/<style>/<!-- -->`, décodage d'entités, collapse whitespace), capé à 6000 chars/page.
+5. **Classification automatique** par host → tier 1-7 (site officiel → IR/annualreport → SEC/AMF → INSEE/Companies House → press releases → FT/WSJ/Les Echos → Crunchbase/Statista).
 
 ### Décisions IA
 
@@ -209,12 +244,17 @@ Source {
 
 ## Variables d'environnement
 
-| Variable             | Défaut                | Description                                                           |
-| -------------------- | --------------------- | --------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`  | —                     | Si vide, mode mock. Sinon génération via Claude Opus 4.7              |
-| `ANTHROPIC_MODEL`    | `claude-opus-4-7`     | Override du modèle                                                    |
-| `ANTHROPIC_EFFORT`   | `high`                | `low` \| `medium` \| `high` \| `xhigh` \| `max`                        |
-| `DATA_DIR`           | `./data`              | Racine du stockage file-system                                        |
+| Variable                | Défaut                                         | Description                                                         |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------- |
+| `OPENROUTER_API_KEY`    | —                                              | **Priorité 1.** Clé gratuite sur https://openrouter.ai/keys         |
+| `OPENROUTER_MODEL`      | `meta-llama/llama-3.3-70b-instruct:free`       | Modèle OpenRouter (préférer les `:free`)                            |
+| `OPENROUTER_REFERRER`   | `https://canvasai.local`                       | Header HTTP-Referer (attribution)                                   |
+| `ANTHROPIC_API_KEY`     | —                                              | **Priorité 2.** Fallback Claude Opus 4.7                            |
+| `ANTHROPIC_MODEL`       | `claude-opus-4-7`                              | Override du modèle                                                  |
+| `ANTHROPIC_EFFORT`      | `high`                                         | `low` \| `medium` \| `high` \| `xhigh` \| `max`                     |
+| `DATA_DIR`              | `./data`                                       | Racine du stockage file-system                                      |
+
+Sans aucune clé, le pipeline retombe en mode mock déterministe (idéal pour CI / démo visuelle).
 
 ---
 

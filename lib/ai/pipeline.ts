@@ -1,9 +1,16 @@
 import type { ProgressEvent, BmcAnalysis } from "../types";
 import { bmcJsonSchema, type BmcResponse } from "../bmc-schema";
-import { SYSTEM_PROMPT, userPrompt } from "./prompts";
+import { SYSTEM_PROMPT, userPrompt, userPromptWithEvidence } from "./prompts";
 import { extractText, parseAndRepair, coherenceWarnings } from "./validators";
 import { rankSources } from "../sources/ranking";
-import { getAnthropic, MODEL, EFFORT, isLiveMode } from "./client";
+import { collectEvidence, type Evidence } from "../sources/collector";
+import { getAnthropic, MODEL as ANTHROPIC_MODEL, EFFORT, isLiveMode as anthropicEnabled } from "./client";
+import {
+  openRouterChat,
+  openRouterEnabled,
+  extractJsonObject,
+  OPENROUTER_MODEL
+} from "./openrouter";
 import { mockBmc } from "./mock";
 import { shortId } from "../utils";
 
@@ -15,9 +22,18 @@ export interface RunInput {
   language?: "fr" | "en" | "ar";
 }
 
+type Mode = "openrouter" | "anthropic" | "mock";
+
+function selectMode(): Mode {
+  if (openRouterEnabled()) return "openrouter";
+  if (anthropicEnabled()) return "anthropic";
+  return "mock";
+}
+
 /**
- * Run the full BMC generation pipeline and emit progress events as they happen.
- * The caller supplies an `emit` callback — typically pushing into a ReadableStream.
+ * Full BMC generation pipeline. Emits ProgressEvents as it runs.
+ * Flow: select provider → collect real web evidence → call LLM →
+ *       validate/repair → compute coherence warnings → done.
  */
 export async function runPipeline(
   input: RunInput,
@@ -38,20 +54,75 @@ export async function runPipeline(
       detail
     });
 
-  emitStep("started", `Analyse de « ${input.company} » démarrée`, 2);
-  emitStep("search", "Identification des sources publiques pertinentes…", 12);
-  emitStep("collect", "Collecte des signaux (officiel, réglementaire, presse)…", 28);
+  const mode = selectMode();
+  emitStep("started", `Analyse de « ${input.company} » démarrée (mode: ${mode})`, 2);
 
   let bmc: BmcResponse;
-  let mode: "live" | "mock" = "mock";
-  const client = getAnthropic();
+  let actualMode: "live" | "mock" = mode === "mock" ? "mock" : "live";
+  let modelLabel: string = mode === "mock" ? "mock-v1" : mode;
 
-  if (client && isLiveMode()) {
-    mode = "live";
-    emitStep("generate", `Génération via ${MODEL} (effort=${EFFORT})…`, 45);
+  let evidence: Evidence[] = [];
+
+  // 1. Collect real evidence — only when we have a live provider.
+  if (mode !== "mock") {
     try {
+      evidence = await collectEvidence(
+        input.company,
+        {
+          country: input.country,
+          sector: input.sector,
+          website: input.website,
+          language: input.language ?? "fr"
+        },
+        (step, msg, pct) => emitStep(step as any, msg, pct)
+      );
+    } catch (err: any) {
+      emitStep(
+        "error",
+        `Collecte échouée: ${err?.message ?? err} — on tente la génération sans evidence.`,
+        35
+      );
+    }
+    if (!evidence.length) {
+      emitStep(
+        "collect",
+        "Aucune source exploitable collectée. Bascule en mode mock.",
+        40
+      );
+      actualMode = "mock";
+    }
+  }
+
+  // 2. Generate.
+  try {
+    if (mode === "openrouter" && actualMode === "live") {
+      emitStep("generate", `Génération via OpenRouter (${OPENROUTER_MODEL})…`, 55);
+      modelLabel = OPENROUTER_MODEL;
+      const raw = await openRouterChat(
+        [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: userPromptWithEvidence(input.company, evidence, {
+              country: input.country,
+              sector: input.sector,
+              website: input.website,
+              language: input.language ?? "fr"
+            })
+          }
+        ],
+        { jsonMode: true, maxTokens: 6000, timeoutMs: 120_000 }
+      );
+      emitStep("validate", "Validation du schéma et cohérence…", 80);
+      bmc = parseAndRepair(extractJsonObject(raw));
+      // Merge any evidence sources missing from the model output.
+      bmc = mergeEvidenceSources(bmc, evidence);
+    } else if (mode === "anthropic" && actualMode === "live") {
+      const client = getAnthropic()!;
+      emitStep("generate", `Génération via ${ANTHROPIC_MODEL} (effort=${EFFORT})…`, 55);
+      modelLabel = ANTHROPIC_MODEL;
       const stream = client.messages.stream({
-        model: MODEL,
+        model: ANTHROPIC_MODEL,
         max_tokens: 8192,
         thinking: { type: "adaptive" } as any,
         output_config: {
@@ -68,48 +139,55 @@ export async function runPipeline(
         messages: [
           {
             role: "user",
-            content: userPrompt(input.company, {
-              country: input.country,
-              sector: input.sector,
-              website: input.website,
-              language: input.language ?? "fr"
-            })
+            content: evidence.length
+              ? userPromptWithEvidence(input.company, evidence, {
+                  country: input.country,
+                  sector: input.sector,
+                  website: input.website,
+                  language: input.language ?? "fr"
+                })
+              : userPrompt(input.company, {
+                  country: input.country,
+                  sector: input.sector,
+                  website: input.website,
+                  language: input.language ?? "fr"
+                })
           }
         ]
       } as any);
 
       stream.on("text", (delta) => {
-        if (delta.length > 0) emitStep("generate", "Rédaction du canvas…", 58);
+        if (delta.length > 0) emitStep("generate", "Rédaction du canvas…", 65);
       });
-
       const final = await stream.finalMessage();
-      const text = extractText(final);
-      emitStep("validate", "Validation du schéma et cohérence…", 80);
-      bmc = parseAndRepair(text);
-    } catch (err: any) {
+      emitStep("validate", "Validation du schéma…", 80);
+      bmc = parseAndRepair(extractText(final));
+      bmc = mergeEvidenceSources(bmc, evidence);
+    } else {
       emitStep(
-        "error",
-        `Appel Anthropic échoué — bascule sur mode mock: ${err?.message ?? err}`,
-        60
+        "generate",
+        "Aucun provider LLM configuré. Génération mock déterministe…",
+        55
       );
-      mode = "mock";
+      await sleep(300);
       bmc = mockBmc(input.company);
+      emitStep("validate", "Validation du schéma…", 78);
     }
-  } else {
+  } catch (err: any) {
     emitStep(
-      "generate",
-      "Mode mock (aucune clé ANTHROPIC_API_KEY détectée) — génération synthétique…",
-      55
+      "error",
+      `Génération LLM échouée (${err?.message ?? err}). Bascule mock.`,
+      70
     );
-    await sleep(400);
+    actualMode = "mock";
+    modelLabel = "mock-v1";
     bmc = mockBmc(input.company);
-    emitStep("validate", "Validation du schéma…", 78);
   }
 
-  // Rank sources, recompute coherence warnings.
+  // 3. Rank sources, coherence warnings.
   bmc.sources = rankSources(bmc.sources as any) as any;
   const warnings = coherenceWarnings(bmc);
-  emitStep("analyze", "Synthèse stratégique, SWOT, innovation lens…", 90, {
+  emitStep("analyze", "Synthèse stratégique, SWOT, innovation lens…", 92, {
     warnings
   });
 
@@ -128,8 +206,8 @@ export async function runPipeline(
     meta: {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      model: mode === "live" ? MODEL : "mock-v1",
-      mode,
+      model: modelLabel,
+      mode: actualMode,
       durationMs: Date.now() - started,
       version: 1
     }
@@ -137,6 +215,19 @@ export async function runPipeline(
 
   emitStep("done", "Analyse terminée", 100);
   return analysis;
+}
+
+/** Ensure the returned BMC's root `sources` array contains every evidence source referenced by blocks. */
+function mergeEvidenceSources(bmc: BmcResponse, evidence: Evidence[]): BmcResponse {
+  const have = new Set((bmc.sources ?? []).map((s) => s.id));
+  const merged = [...(bmc.sources ?? [])];
+  for (const ev of evidence) {
+    if (!have.has(ev.source.id)) {
+      merged.push(ev.source);
+      have.add(ev.source.id);
+    }
+  }
+  return { ...bmc, sources: merged } as BmcResponse;
 }
 
 function sleep(ms: number) {

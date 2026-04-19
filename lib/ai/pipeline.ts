@@ -55,7 +55,21 @@ export async function runPipeline(
     });
 
   const mode = selectMode();
-  emitStep("started", `Analyse de « ${input.company} » démarrée (mode: ${mode})`, 2);
+  if (mode === "mock") {
+    emitStep(
+      "started",
+      `⚠️  MODE MOCK — aucune clé LLM détectée. Le résultat sera identique pour chaque recherche. ` +
+        `Configurez OPENROUTER_API_KEY dans .env.local puis redémarrez 'npm run dev'. ` +
+        `Diagnostic: /api/health`,
+      2
+    );
+  } else {
+    emitStep(
+      "started",
+      `Analyse de « ${input.company} » démarrée (mode: ${mode})`,
+      2
+    );
+  }
 
   let bmc: BmcResponse;
   let actualMode: "live" | "mock" = mode === "mock" ? "mock" : "live";

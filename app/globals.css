@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark light;
+}
+
+html,
+body {
+  @apply bg-ink-950 text-ink-100 antialiased;
+  font-feature-settings: "cv02", "cv11", "ss01";
+}
+
+a {
+  @apply text-brand-300 hover:text-brand-200 transition-colors;
+}
+
+::selection {
+  background: rgba(45, 98, 245, 0.35);
+}
+
+.card {
+  @apply rounded-2xl border border-ink-700/60 bg-ink-900/80 backdrop-blur-sm;
+}
+
+.card-hover {
+  @apply transition-all duration-200 hover:border-brand-400/40 hover:shadow-lift;
+}
+
+.grid-bg {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-300 via-brand-200 to-white;
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

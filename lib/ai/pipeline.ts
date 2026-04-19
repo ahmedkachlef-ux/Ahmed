@@ -53,7 +53,7 @@ export async function runPipeline(
       const stream = client.messages.stream({
         model: MODEL,
         max_tokens: 8192,
-        thinking: { type: "adaptive" },
+        thinking: { type: "adaptive" } as any,
         output_config: {
           effort: EFFORT,
           format: { type: "json_schema", schema: bmcJsonSchema }
@@ -76,7 +76,7 @@ export async function runPipeline(
             })
           }
         ]
-      });
+      } as any);
 
       stream.on("text", (delta) => {
         if (delta.length > 0) emitStep("generate", "Rédaction du canvas…", 58);
@@ -107,7 +107,7 @@ export async function runPipeline(
   }
 
   // Rank sources, recompute coherence warnings.
-  bmc.sources = rankSources(bmc.sources);
+  bmc.sources = rankSources(bmc.sources as any) as any;
   const warnings = coherenceWarnings(bmc);
   emitStep("analyze", "Synthèse stratégique, SWOT, innovation lens…", 90, {
     warnings
@@ -117,7 +117,7 @@ export async function runPipeline(
     id: shortId(),
     company: bmc.company,
     blocks: bmc.blocks as BmcAnalysis["blocks"],
-    sources: bmc.sources,
+    sources: bmc.sources as BmcAnalysis["sources"],
     analysis: {
       ...bmc.analysis,
       coherence: {

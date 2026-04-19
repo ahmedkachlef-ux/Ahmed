@@ -12,5 +12,7 @@ npm-debug.log*
 .idea
 .turbo
 coverage
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 data/analyses
 data/feedback

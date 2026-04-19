@@ -100,36 +100,43 @@ export async function runPipeline(
     if (!evidence.length) {
       emitStep(
         "collect",
-        "Aucune source exploitable collectée. Bascule en mode mock.",
+        "Aucune source web collectée (Wikipedia/DuckDuckGo injoignables ou bloqués). " +
+          "On appelle quand même le LLM sans evidence — il utilisera ses connaissances générales.",
         40
       );
-      actualMode = "mock";
+      // NOTE: do NOT switch actualMode to "mock" here. Falling back to the
+      // deterministic template would make every company produce the same BMC.
+      // The LLM can still differentiate based on company name + hints.
     }
   }
 
   // 2. Generate.
   try {
     if (mode === "openrouter" && actualMode === "live") {
-      emitStep("generate", `Génération via OpenRouter (${OPENROUTER_MODEL})…`, 55);
+      emitStep(
+        "generate",
+        `Génération via OpenRouter (${OPENROUTER_MODEL}) — ${evidence.length} sources…`,
+        55
+      );
       modelLabel = OPENROUTER_MODEL;
+      const hints = {
+        country: input.country,
+        sector: input.sector,
+        website: input.website,
+        language: (input.language ?? "fr") as "fr" | "en" | "ar"
+      };
+      const userContent = evidence.length
+        ? userPromptWithEvidence(input.company, evidence, hints)
+        : userPrompt(input.company, hints);
       const raw = await openRouterChat(
         [
           { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: userPromptWithEvidence(input.company, evidence, {
-              country: input.country,
-              sector: input.sector,
-              website: input.website,
-              language: input.language ?? "fr"
-            })
-          }
+          { role: "user", content: userContent }
         ],
         { jsonMode: true, maxTokens: 6000, timeoutMs: 120_000 }
       );
       emitStep("validate", "Validation du schéma et cohérence…", 80);
       bmc = parseAndRepair(extractJsonObject(raw));
-      // Merge any evidence sources missing from the model output.
       bmc = mergeEvidenceSources(bmc, evidence);
     } else if (mode === "anthropic" && actualMode === "live") {
       const client = getAnthropic()!;
@@ -188,9 +195,13 @@ export async function runPipeline(
       emitStep("validate", "Validation du schéma…", 78);
     }
   } catch (err: any) {
+    // Surface the full error to the server terminal so the user can see what
+    // OpenRouter actually returned (rate limit, bad JSON, timeout, etc).
+    console.error("[pipeline] LLM generation failed:", err);
+    const msg = (err?.message ?? String(err)).slice(0, 500);
     emitStep(
       "error",
-      `Génération LLM échouée (${err?.message ?? err}). Bascule mock.`,
+      `Génération LLM échouée: ${msg}. Bascule mock (sortie identique pour toutes les recherches).`,
       70
     );
     actualMode = "mock";

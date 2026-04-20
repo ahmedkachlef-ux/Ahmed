@@ -1,23 +1,38 @@
 /* Business Model Canvas Generator
- * Uses the Anthropic Claude API with the web_search tool to build a
- * dynamic BMC for any company provided by the user.
+ * Supports two providers:
+ *   - Anthropic direct (claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5)
+ *   - OpenRouter (anthropic/claude, openai/gpt, google/gemini, meta-llama/..., etc.)
+ *
+ * Web search:
+ *   - Anthropic: native `web_search_20250305` tool
+ *   - OpenRouter: `:online` model suffix (Exa-powered plugin)
  */
 
-const STORAGE_KEY = "bmc-generator.settings.v1";
-const API_ENDPOINT = "https://api.anthropic.com/v1/messages";
-const API_VERSION = "2023-06-01";
+const STORAGE_KEY = "bmc-generator.settings.v2";
+
+const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 const BLOCKS = [
-  { key: "keyPartnerships",       label: "Partenaires clés" },
-  { key: "keyActivities",         label: "Activités clés" },
-  { key: "keyResources",          label: "Ressources clés" },
-  { key: "valuePropositions",     label: "Proposition de valeur" },
-  { key: "customerRelationships", label: "Relations clients" },
-  { key: "channels",              label: "Canaux" },
-  { key: "customerSegments",      label: "Segments de clientèle" },
-  { key: "costStructure",         label: "Structure de coûts" },
-  { key: "revenueStreams",        label: "Sources de revenus" },
+  { key: "keyPartnerships" },
+  { key: "keyActivities" },
+  { key: "keyResources" },
+  { key: "valuePropositions" },
+  { key: "customerRelationships" },
+  { key: "channels" },
+  { key: "customerSegments" },
+  { key: "costStructure" },
+  { key: "revenueStreams" },
 ];
+
+const DEFAULT_SETTINGS = {
+  provider: "openrouter",
+  apiKey: "",
+  modelAnthropic: "claude-opus-4-7",
+  modelOpenRouter: "anthropic/claude-sonnet-4.5",
+  webSearch: true,
+};
 
 /* ---------- Settings ---------- */
 
@@ -26,31 +41,20 @@ function loadSettings() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
     return JSON.parse(raw);
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
-
 function saveSettings(settings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
-
 function getSettings() {
-  return {
-    apiKey: "",
-    model: "claude-opus-4-7",
-    webSearch: true,
-    ...loadSettings(),
-  };
+  return { ...DEFAULT_SETTINGS, ...loadSettings() };
 }
 
 /* ---------- UI helpers ---------- */
 
 const $ = (sel) => document.querySelector(sel);
 
-function setStatus(message) {
-  $("#statusText").textContent = message;
-}
+function setStatus(message) { $("#statusText").textContent = message; }
 
 function showLoading(message) {
   $("#errorSection").hidden = true;
@@ -58,10 +62,7 @@ function showLoading(message) {
   $("#statusSection").hidden = false;
   setStatus(message);
 }
-
-function hideLoading() {
-  $("#statusSection").hidden = true;
-}
+function hideLoading() { $("#statusSection").hidden = true; }
 
 function showError(message) {
   hideLoading();
@@ -127,92 +128,116 @@ function buildUserPrompt(company) {
 Réponds UNIQUEMENT avec le JSON final, sans texte d'accompagnement.`;
 }
 
-/* ---------- API call ---------- */
+/* ---------- Anthropic provider ---------- */
 
-async function callClaude(company, settings, onProgress) {
+async function callAnthropic(company, settings, onProgress) {
   const body = {
-    model: settings.model,
+    model: settings.modelAnthropic,
     max_tokens: 8000,
     system: buildSystemPrompt(),
     messages: [{ role: "user", content: buildUserPrompt(company) }],
   };
-
   if (settings.webSearch) {
-    body.tools = [
-      { type: "web_search_20250305", name: "web_search", max_uses: 6 },
-    ];
+    body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }];
   }
 
-  const headers = {
-    "Content-Type": "application/json",
-    "anthropic-version": API_VERSION,
-    "x-api-key": settings.apiKey,
-    "anthropic-dangerous-direct-browser-access": "true",
-  };
+  onProgress?.("Appel Anthropic + recherche web…");
 
-  onProgress?.("Interrogation de Claude et recherche web en cours…");
-
-  const res = await fetch(API_ENDPOINT, {
+  const res = await fetch(ANTHROPIC_ENDPOINT, {
     method: "POST",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      "anthropic-version": ANTHROPIC_VERSION,
+      "x-api-key": settings.apiKey,
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
     body: JSON.stringify(body),
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    let msg = `Erreur API (${res.status})`;
-    try {
-      const parsed = JSON.parse(text);
-      if (parsed.error?.message) msg = parsed.error.message;
-    } catch { /* keep default */ }
-    throw new Error(msg);
-  }
+  if (!res.ok) throw await buildApiError(res, "Anthropic");
 
   const data = await res.json();
-  return extractJsonResponse(data);
-}
-
-function extractJsonResponse(data) {
-  const textBlocks = (data.content || [])
+  const text = (data.content || [])
     .filter((b) => b.type === "text" && typeof b.text === "string")
-    .map((b) => b.text);
-
-  const combined = textBlocks.join("\n").trim();
-  if (!combined) throw new Error("Réponse vide du modèle.");
-
-  const parsed = tryParseJson(combined);
-  if (!parsed) {
-    throw new Error("Impossible de parser la réponse JSON du modèle.");
-  }
-
-  if (parsed.error) throw new Error(parsed.error);
-
-  validateBmc(parsed);
-  return parsed;
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+  if (!text) throw new Error("Réponse vide du modèle Anthropic.");
+  return text;
 }
+
+/* ---------- OpenRouter provider ---------- */
+
+async function callOpenRouter(company, settings, onProgress) {
+  const base = (settings.modelOpenRouter || "").trim();
+  if (!base) throw new Error("Modèle OpenRouter manquant.");
+
+  const model = settings.webSearch && !base.endsWith(":online") ? `${base}:online` : base;
+
+  const body = {
+    model,
+    messages: [
+      { role: "system", content: buildSystemPrompt() },
+      { role: "user", content: buildUserPrompt(company) },
+    ],
+    max_tokens: 8000,
+    temperature: 0.4,
+  };
+
+  onProgress?.(`Appel OpenRouter (${model})…`);
+
+  const res = await fetch(OPENROUTER_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${settings.apiKey}`,
+      "HTTP-Referer": window.location.origin || "https://bmc-generator.local",
+      "X-Title": "Business Model Canvas Generator",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw await buildApiError(res, "OpenRouter");
+
+  const data = await res.json();
+  const msg = data.choices?.[0]?.message;
+  const text = typeof msg?.content === "string"
+    ? msg.content
+    : Array.isArray(msg?.content)
+      ? msg.content.filter((p) => p.type === "text").map((p) => p.text).join("\n")
+      : "";
+  if (!text.trim()) throw new Error("Réponse vide du modèle OpenRouter.");
+  return text.trim();
+}
+
+async function buildApiError(res, providerLabel) {
+  const text = await res.text();
+  let msg = `${providerLabel} — erreur ${res.status}`;
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed.error?.message) msg = `${providerLabel} : ${parsed.error.message}`;
+    else if (typeof parsed.error === "string") msg = `${providerLabel} : ${parsed.error}`;
+  } catch { /* keep default */ }
+  return new Error(msg);
+}
+
+/* ---------- JSON extraction ---------- */
 
 function tryParseJson(text) {
-  const attempts = [
-    text,
-    text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, ""),
-  ];
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    attempts.push(text.slice(firstBrace, lastBrace + 1));
-  }
-  for (const candidate of attempts) {
-    try { return JSON.parse(candidate); } catch { /* try next */ }
+  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
+  const attempts = [cleaned, text];
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
+  if (first >= 0 && last > first) attempts.push(cleaned.slice(first, last + 1));
+  for (const c of attempts) {
+    try { return JSON.parse(c); } catch { /* try next */ }
   }
   return null;
 }
 
 function validateBmc(parsed) {
+  if (parsed.error) throw new Error(parsed.error);
   if (!parsed.blocks) throw new Error("Structure JSON invalide : blocs manquants.");
   for (const { key } of BLOCKS) {
-    if (!parsed.blocks[key]) {
-      throw new Error(`Bloc manquant dans la réponse : ${key}`);
-    }
+    if (!parsed.blocks[key]) throw new Error(`Bloc manquant dans la réponse : ${key}`);
   }
 }
 
@@ -229,12 +254,8 @@ function renderBmc(bmc) {
     const block = bmc.blocks[key];
     const blockEl = document.querySelector(`.bmc-block[data-key="${key}"]`);
     if (!blockEl || !block) continue;
-
-    const body = blockEl.querySelector(".bmc-body");
-    const analysis = blockEl.querySelector(".bmc-analysis p");
-
-    body.innerHTML = renderItems(block.items || []);
-    analysis.textContent = block.analysis || "";
+    blockEl.querySelector(".bmc-body").innerHTML = renderItems(block.items || []);
+    blockEl.querySelector(".bmc-analysis p").textContent = block.analysis || "";
   }
 
   if (bmc.synthesis) {
@@ -246,7 +267,7 @@ function renderBmc(bmc) {
   if (sources.length) {
     $("#sourcesWrapper").hidden = false;
     $("#sourcesList").innerHTML = sources
-      .map((url) => `<li><a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`)
+      .map((url) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`)
       .join("");
   }
 
@@ -273,14 +294,13 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-function escapeAttr(str) { return escapeHtml(str); }
 
 /* ---------- Flow ---------- */
 
 async function generate(company) {
   const settings = getSettings();
   if (!settings.apiKey) {
-    openSettings("Ajoutez votre clé API Anthropic pour démarrer l'analyse.");
+    openSettings("Ajoutez votre clé API pour démarrer l'analyse.");
     return;
   }
 
@@ -289,8 +309,15 @@ async function generate(company) {
   $("#generateBtn").disabled = true;
 
   try {
-    const bmc = await callClaude(company, settings, setStatus);
-    renderBmc(bmc);
+    const raw = settings.provider === "openrouter"
+      ? await callOpenRouter(company, settings, setStatus)
+      : await callAnthropic(company, settings, setStatus);
+
+    setStatus("Analyse des résultats…");
+    const parsed = tryParseJson(raw);
+    if (!parsed) throw new Error("Impossible de parser la réponse JSON du modèle.");
+    validateBmc(parsed);
+    renderBmc(parsed);
   } catch (err) {
     console.error(err);
     showError(err.message || String(err));
@@ -301,17 +328,37 @@ async function generate(company) {
 
 /* ---------- Settings dialog ---------- */
 
+function applyProviderUi(provider) {
+  const isAnthropic = provider === "anthropic";
+  document.querySelectorAll("#providerSegmented .segment").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.provider === provider);
+  });
+
+  $("#apiKeyLabel").textContent = isAnthropic ? "Clé API Anthropic" : "Clé API OpenRouter";
+  $("#apiKeyInput").placeholder = isAnthropic ? "sk-ant-…" : "sk-or-…";
+  $("#apiKeyHelp").href = isAnthropic
+    ? "https://console.anthropic.com/settings/keys"
+    : "https://openrouter.ai/keys";
+
+  $("#modelSelect").hidden = !isAnthropic;
+  $("#openrouterModelWrapper").hidden = isAnthropic;
+}
+
 function openSettings(hintMessage) {
   const dialog = $("#settingsDialog");
   const settings = getSettings();
+
+  applyProviderUi(settings.provider);
   $("#apiKeyInput").value = settings.apiKey || "";
-  $("#modelSelect").value = settings.model;
+  $("#modelSelect").value = settings.modelAnthropic;
+  $("#openrouterModelInput").value = settings.modelOpenRouter;
   $("#useWebSearch").checked = settings.webSearch !== false;
 
-  if (hintMessage) {
-    const help = dialog.querySelector(".dialog-help");
-    help.textContent = hintMessage;
-  }
+  const help = dialog.querySelector(".dialog-help");
+  help.innerHTML = hintMessage
+    ? escapeHtml(hintMessage)
+    : 'Choisissez votre fournisseur. La clé API est stockée uniquement dans le <strong>localStorage</strong> de votre navigateur.';
+
   if (!dialog.open) dialog.showModal();
 }
 
@@ -319,11 +366,19 @@ function setupSettingsDialog() {
   const dialog = $("#settingsDialog");
   $("#settingsBtn").addEventListener("click", () => openSettings());
 
+  document.querySelectorAll("#providerSegmented .segment").forEach((btn) => {
+    btn.addEventListener("click", () => applyProviderUi(btn.dataset.provider));
+  });
+
   dialog.addEventListener("close", () => {
     if (dialog.returnValue !== "save") return;
+    const activeSegment = document.querySelector("#providerSegmented .segment.is-active");
+    const provider = activeSegment?.dataset.provider || "openrouter";
     const next = {
+      provider,
       apiKey: $("#apiKeyInput").value.trim(),
-      model: $("#modelSelect").value,
+      modelAnthropic: $("#modelSelect").value,
+      modelOpenRouter: $("#openrouterModelInput").value.trim() || DEFAULT_SETTINGS.modelOpenRouter,
       webSearch: $("#useWebSearch").checked,
     };
     saveSettings(next);
@@ -359,11 +414,26 @@ function setupForm() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  migrateOldSettings();
   setupSettingsDialog();
   setupForm();
-
-  const settings = getSettings();
-  if (!settings.apiKey) {
-    openSettings();
-  }
+  if (!getSettings().apiKey) openSettings();
 });
+
+function migrateOldSettings() {
+  const oldKey = "bmc-generator.settings.v1";
+  if (localStorage.getItem(STORAGE_KEY)) return;
+  try {
+    const raw = localStorage.getItem(oldKey);
+    if (!raw) return;
+    const old = JSON.parse(raw);
+    const migrated = {
+      provider: "anthropic",
+      apiKey: old.apiKey || "",
+      modelAnthropic: old.model || DEFAULT_SETTINGS.modelAnthropic,
+      modelOpenRouter: DEFAULT_SETTINGS.modelOpenRouter,
+      webSearch: old.webSearch !== false,
+    };
+    saveSettings(migrated);
+  } catch { /* ignore */ }
+}

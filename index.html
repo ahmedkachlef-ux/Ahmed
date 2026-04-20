@@ -214,18 +214,46 @@
     <form method="dialog">
       <h3>Paramètres API</h3>
       <p class="dialog-help">
-        Ce générateur utilise l'API Anthropic de Claude avec la recherche web activée.
-        Votre clé API est stockée uniquement dans le <strong>localStorage</strong> de votre navigateur.
+        Choisissez votre fournisseur. La clé API est stockée uniquement dans le
+        <strong>localStorage</strong> de votre navigateur.
       </p>
-      <label for="apiKeyInput">Clé API Anthropic</label>
-      <input id="apiKeyInput" type="password" placeholder="sk-ant-…" autocomplete="off" />
+
+      <label>Fournisseur</label>
+      <div class="segmented" id="providerSegmented">
+        <button type="button" class="segment" data-provider="anthropic">Anthropic</button>
+        <button type="button" class="segment is-active" data-provider="openrouter">OpenRouter</button>
+      </div>
+
+      <label for="apiKeyInput">
+        <span id="apiKeyLabel">Clé API OpenRouter</span>
+        <a id="apiKeyHelp" href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">Obtenir une clé ↗</a>
+      </label>
+      <input id="apiKeyInput" type="password" placeholder="sk-or-…" autocomplete="off" />
 
       <label for="modelSelect">Modèle</label>
-      <select id="modelSelect">
+      <select id="modelSelect" data-provider="anthropic" hidden>
         <option value="claude-opus-4-7">Claude Opus 4.7 (recommandé)</option>
         <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (rapide)</option>
         <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (économique)</option>
       </select>
+      <div id="openrouterModelWrapper" class="model-combo">
+        <input id="openrouterModelInput" list="openrouterModels" placeholder="ex. anthropic/claude-sonnet-4.5" autocomplete="off" />
+        <datalist id="openrouterModels">
+          <option value="anthropic/claude-opus-4.1">Claude Opus 4.1 (puissant)</option>
+          <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5 (équilibré)</option>
+          <option value="anthropic/claude-haiku-4.5">Claude Haiku 4.5 (rapide)</option>
+          <option value="openai/gpt-5">GPT-5</option>
+          <option value="openai/gpt-4o">GPT-4o</option>
+          <option value="openai/gpt-4o-mini">GPT-4o mini (économique)</option>
+          <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+          <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+          <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+          <option value="mistralai/mistral-large-2411">Mistral Large</option>
+          <option value="x-ai/grok-4">Grok 4</option>
+          <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+        </datalist>
+        <small class="field-hint">Tapez ou choisissez un modèle. Tout identifiant OpenRouter valide fonctionne.</small>
+      </div>
 
       <label class="checkbox-row">
         <input id="useWebSearch" type="checkbox" checked />
@@ -240,7 +268,7 @@
   </dialog>
 
   <footer class="site-footer">
-    <p>Structure : Osterwalder &amp; Pigneur — <em>Business Model Generation</em>. Propulsé par Claude API.</p>
+    <p>Structure : Osterwalder &amp; Pigneur — <em>Business Model Generation</em>. Compatible Anthropic &amp; OpenRouter.</p>
   </footer>
 
   <script src="app.js"></script>

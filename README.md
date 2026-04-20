@@ -1,8 +1,12 @@
 # Business Model Canvas Generator
 
-Générateur dynamique de **Business Model Canvas** (Osterwalder & Pigneur) propulsé par l'API Claude avec recherche web en temps réel.
+Générateur dynamique de **Business Model Canvas** (Osterwalder & Pigneur) avec recherche web en temps réel.
 
-Vous entrez le nom d'une entreprise. Claude effectue une recherche web, structure les informations selon les **9 blocs standards** du BMC, ajoute une **analyse stratégique** pour chacun et produit une **synthèse globale**.
+Vous entrez le nom d'une entreprise, le modèle effectue une recherche web, structure les informations selon les **9 blocs standards** du BMC, ajoute une **analyse stratégique** pour chacun et produit une **synthèse globale**.
+
+**Deux fournisseurs supportés** :
+- **Anthropic direct** (Claude Opus/Sonnet/Haiku) — recherche web native via l'outil `web_search`.
+- **OpenRouter** — accès à Claude, GPT-5, Gemini, Llama, Mistral, Grok, DeepSeek… avec recherche web via le suffixe `:online`.
 
 ## Les 9 blocs générés
 
@@ -34,11 +38,16 @@ Vous pouvez aussi ouvrir `index.html` directement dans votre navigateur.
 
 Au premier lancement, une fenêtre vous demande :
 
-- Votre **clé API Anthropic** (format `sk-ant-…`), obtenable sur <https://console.anthropic.com>.
-- Le **modèle** Claude à utiliser (Opus 4.7 par défaut).
-- L'activation de la **recherche web en temps réel** (recommandée).
+- Le **fournisseur** : `Anthropic` ou `OpenRouter` (par défaut).
+- Votre **clé API** :
+  - Anthropic : format `sk-ant-…` → <https://console.anthropic.com/settings/keys>
+  - OpenRouter : format `sk-or-…` → <https://openrouter.ai/keys>
+- Le **modèle** :
+  - Anthropic : Opus 4.7, Sonnet 4.6, Haiku 4.5
+  - OpenRouter : champ libre avec suggestions (`anthropic/claude-sonnet-4.5`, `openai/gpt-5`, `google/gemini-2.5-pro`, `meta-llama/llama-3.3-70b-instruct`, `x-ai/grok-4`, `deepseek/deepseek-chat`, etc. — tout ID OpenRouter valide fonctionne).
+- L'activation de la **recherche web** (recommandée). Pour OpenRouter, le suffixe `:online` est ajouté automatiquement au modèle.
 
-La clé est stockée uniquement dans le `localStorage` de votre navigateur — elle ne quitte jamais votre machine, hors appels directs à l'API Anthropic.
+La clé est stockée uniquement dans le `localStorage` de votre navigateur.
 
 ## Fonctionnalités
 
@@ -55,3 +64,4 @@ La clé est stockée uniquement dans le `localStorage` de votre navigateur — e
 - HTML5 + CSS3 (Grid, backdrop-filter, color-mix)
 - JavaScript vanilla (Fetch API, `<dialog>`)
 - API Anthropic `messages` avec outil `web_search_20250305`
+- API OpenRouter (compatible OpenAI) avec suffixe de modèle `:online` pour la recherche web

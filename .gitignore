@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .env
+local_config.py
 *.json
 !package.json
 !package-lock.json

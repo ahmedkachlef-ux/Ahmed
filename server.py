@@ -7,12 +7,16 @@ Sert les fichiers statiques (index.html, styles.css, app.js) et expose :
   - GET  /api/models     → liste des modèles OpenRouter gratuits
   - GET  /api/config     → modèle par défaut, état clé API
 
-La clé API OpenRouter est lue UNIQUEMENT depuis la variable d'environnement
-OPENROUTER_API_KEY côté serveur. Elle n'est jamais envoyée au navigateur.
+La clé API OpenRouter est lue dans cet ordre de priorité :
+  1. Variable d'environnement OPENROUTER_API_KEY
+  2. Fichier local_config.py (ignoré par git — pour usage personnel)
+Elle n'est jamais envoyée au navigateur.
 
 Lancement :
     pip install -r requirements.txt
+    # option A : variable d'environnement
     export OPENROUTER_API_KEY="sk-or-v1-..."
+    # option B : créer local_config.py avec OPENROUTER_API_KEY = "sk-or-v1-..."
     python server.py
     # puis ouvrir http://127.0.0.1:8000
 """
@@ -32,8 +36,35 @@ from bmc_cli import (
     validate_bmc,
 )
 
+# Optional local config file (gitignored). Create `local_config.py` next to
+# this file with: OPENROUTER_API_KEY = "sk-or-v1-..." (and optionally
+# OPENROUTER_MODEL = "..."). Env vars still take precedence.
+try:
+    import local_config  # type: ignore
+except ImportError:
+    local_config = None  # type: ignore
+
+
+def get_api_key() -> str | None:
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key and local_config is not None:
+        key = getattr(local_config, "OPENROUTER_API_KEY", None)
+    return key or None
+
+
+def get_default_model() -> str:
+    env_model = os.environ.get("OPENROUTER_MODEL")
+    if env_model:
+        return env_model
+    if local_config is not None:
+        local_model = getattr(local_config, "OPENROUTER_MODEL", None)
+        if local_model:
+            return local_model
+    return "openai/gpt-3.5-turbo"
+
+
 ROOT = Path(__file__).resolve().parent
-DEFAULT_MODEL = os.environ.get("OPENROUTER_MODEL", "openai/gpt-3.5-turbo")
+DEFAULT_MODEL = get_default_model()
 
 app = Flask(__name__, static_folder=str(ROOT), static_url_path="")
 
@@ -50,7 +81,7 @@ def index():
 @app.get("/api/config")
 def api_config():
     return jsonify({
-        "hasApiKey": bool(os.environ.get("OPENROUTER_API_KEY")),
+        "hasApiKey": bool(get_api_key()),
         "defaultModel": DEFAULT_MODEL,
     })
 
@@ -66,7 +97,7 @@ def api_models():
 
 @app.post("/api/generate")
 def api_generate():
-    api_key = os.environ.get("OPENROUTER_API_KEY")
+    api_key = get_api_key()
     if not api_key:
         return jsonify({"error": "OPENROUTER_API_KEY non définie côté serveur."}), 500
 
@@ -90,11 +121,10 @@ def api_generate():
 # ─────────────────────────── Entrypoint ───────────────────────
 
 def main() -> int:
-    if not os.environ.get("OPENROUTER_API_KEY"):
+    if not get_api_key():
         print(
-            "⚠  OPENROUTER_API_KEY n'est pas définie. Le serveur démarrera mais "
-            "/api/generate renverra 500. Définissez-la : "
-            "export OPENROUTER_API_KEY=sk-or-v1-...",
+            "⚠  OPENROUTER_API_KEY introuvable (ni en variable d'environnement, "
+            "ni dans local_config.py). /api/generate renverra 500.",
             file=sys.stderr,
         )
 

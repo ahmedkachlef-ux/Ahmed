@@ -30,10 +30,29 @@ Pour chaque bloc : 3 à 6 éléments + analyse stratégique. Plus une synthèse 
 
 ```bash
 pip install -r requirements.txt
-export OPENROUTER_API_KEY="sk-or-v1-…"      # clé gratuite sur openrouter.ai/keys
-# export OPENROUTER_MODEL="google/gemini-2.0-flash-exp:free"   # optionnel
+```
+
+Deux façons de fournir la clé API OpenRouter (priorité : env var > fichier local) :
+
+**Option A — variable d'environnement**
+
+```bash
+# Linux / macOS
+export OPENROUTER_API_KEY="sk-or-v1-…"
+# Windows PowerShell
+$env:OPENROUTER_API_KEY = "sk-or-v1-…"
 python server.py
 ```
+
+**Option B — fichier `local_config.py`** (pratique sur Windows, pas de PowerShell)
+
+```bash
+cp local_config.example.py local_config.py   # ou copier manuellement
+# Éditez local_config.py et remplissez OPENROUTER_API_KEY
+python server.py
+```
+
+`local_config.py` est **ignoré par git** — la clé ne risque pas d'être poussée accidentellement.
 
 Puis ouvrez **http://127.0.0.1:8000**.
 

@@ -44,8 +44,14 @@ Au premier lancement, une fenêtre vous demande :
   - OpenRouter : format `sk-or-…` → <https://openrouter.ai/keys>
 - Le **modèle** :
   - Anthropic : Opus 4.7, Sonnet 4.6, Haiku 4.5
-  - OpenRouter : champ libre avec suggestions (`anthropic/claude-sonnet-4.5`, `openai/gpt-5`, `google/gemini-2.5-pro`, `meta-llama/llama-3.3-70b-instruct`, `x-ai/grok-4`, `deepseek/deepseek-chat`, etc. — tout ID OpenRouter valide fonctionne).
-- L'activation de la **recherche web** (recommandée). Pour OpenRouter, le suffixe `:online` est ajouté automatiquement au modèle.
+  - OpenRouter : modèles **100 % gratuits** par défaut (suffixe `:free`) — DeepSeek V3, DeepSeek R1, Llama 3.3 70B, Gemini 2.0 Flash, Qwen 2.5 72B, Mistral Small 3.1… ou n'importe quel ID OpenRouter valide.
+- L'activation de la **recherche web** (optionnelle).
+  - Anthropic : outil natif `web_search`, facturé par l'API.
+  - OpenRouter : suffixe `:online` (plugin Exa, payant ~4 $ / 1000 requêtes). **Désactivé automatiquement** si vous choisissez un modèle `:free` — l'analyse s'appuie alors sur les connaissances intégrées au modèle.
+
+### Mode 100 % gratuit
+
+Par défaut, le fournisseur est **OpenRouter** avec le modèle `deepseek/deepseek-chat-v3-0324:free` et la recherche web **désactivée**. Il suffit de créer un compte sur <https://openrouter.ai/keys> pour obtenir une clé gratuite — aucune carte bancaire requise, dans les limites de taux des modèles `:free`.
 
 La clé est stockée uniquement dans le `localStorage` de votre navigateur.
 

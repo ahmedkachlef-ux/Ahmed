@@ -30,9 +30,11 @@ const DEFAULT_SETTINGS = {
   provider: "openrouter",
   apiKey: "",
   modelAnthropic: "claude-opus-4-7",
-  modelOpenRouter: "anthropic/claude-sonnet-4.5",
-  webSearch: true,
+  modelOpenRouter: "deepseek/deepseek-chat-v3-0324:free",
+  webSearch: false,
 };
+
+const isFreeModel = (id) => typeof id === "string" && id.endsWith(":free");
 
 /* ---------- Settings ---------- */
 
@@ -81,11 +83,19 @@ function clearCanvas() {
 
 /* ---------- Prompt ---------- */
 
-function buildSystemPrompt() {
+function buildSystemPrompt(webSearch) {
+  const sourceInstruction = webSearch
+    ? `- Utiliser la recherche web pour collecter des informations récentes, factuelles et précises sur l'entreprise demandée (site officiel, rapports annuels, presse spécialisée, sources sectorielles).`
+    : `- T'appuyer sur tes connaissances d'entraînement sur l'entreprise demandée (modèle d'affaires, historique, positionnement, clients typiques, partenaires connus, structure de revenus publique). Si tu n'as aucune information fiable sur l'entreprise, retourne l'objet d'erreur JSON.`;
+
+  const sourcesField = webSearch
+    ? `"sources": ["<url1>", "<url2>", ...]`
+    : `"sources": []`;
+
   return `Tu es un expert senior en stratégie d'entreprise, spécialisé dans le modèle Business Model Canvas d'Alexander Osterwalder & Yves Pigneur.
 
 Ton rôle :
-- Utiliser la recherche web pour collecter des informations récentes, factuelles et précises sur l'entreprise demandée (site officiel, rapports annuels, presse spécialisée, sources sectorielles).
+${sourceInstruction}
 - Structurer ces informations selon les 9 blocs EXACTS du Business Model Canvas.
 - Pour chaque bloc, fournir 3 à 6 éléments clés (chacun avec un titre court et une description concise) ET une analyse stratégique de 2 à 4 phrases qui explique la logique, les forces, les risques ou les leviers de différenciation.
 - Conclure avec une synthèse stratégique globale (3-5 phrases) : positionnement, avantages compétitifs durables, vulnérabilités, opportunités.
@@ -111,19 +121,26 @@ Schéma JSON attendu :
     "revenueStreams":        { "items": [...], "analysis": "..." }
   },
   "synthesis": "<synthèse stratégique globale en 3-5 phrases>",
-  "sources": ["<url1>", "<url2>", ...]
+  ${sourcesField}
 }`;
 }
 
-function buildUserPrompt(company) {
+function buildUserPrompt(company, webSearch) {
+  const step1 = webSearch
+    ? `1. Effectue une recherche web pour obtenir des informations récentes et factuelles (modèle d'affaires, clients, revenus, partenaires, canaux, coûts).`
+    : `1. Mobilise tes connaissances sur cette entreprise (modèle d'affaires, clients, partenaires, canaux, coûts, revenus connus publiquement).`;
+  const step5 = webSearch
+    ? `5. Liste les URLs des sources consultées dans "sources".`
+    : `5. Laisse "sources" à [] (pas de recherche web activée).`;
+
   return `Génère le Business Model Canvas complet de l'entreprise suivante : "${company}".
 
 Étapes :
-1. Effectue une recherche web pour obtenir des informations récentes et factuelles (modèle d'affaires, clients, revenus, partenaires, canaux, coûts).
+${step1}
 2. Remplis les 9 blocs selon le schéma demandé.
 3. Rédige une analyse stratégique pour chaque bloc (leviers, risques, différenciation).
 4. Ajoute une synthèse globale.
-5. Liste les URLs des sources consultées dans "sources".
+${step5}
 
 Réponds UNIQUEMENT avec le JSON final, sans texte d'accompagnement.`;
 }
@@ -134,8 +151,8 @@ async function callAnthropic(company, settings, onProgress) {
   const body = {
     model: settings.modelAnthropic,
     max_tokens: 8000,
-    system: buildSystemPrompt(),
-    messages: [{ role: "user", content: buildUserPrompt(company) }],
+    system: buildSystemPrompt(settings.webSearch),
+    messages: [{ role: "user", content: buildUserPrompt(company, settings.webSearch) }],
   };
   if (settings.webSearch) {
     body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }];
@@ -171,13 +188,15 @@ async function callOpenRouter(company, settings, onProgress) {
   const base = (settings.modelOpenRouter || "").trim();
   if (!base) throw new Error("Modèle OpenRouter manquant.");
 
-  const model = settings.webSearch && !base.endsWith(":online") ? `${base}:online` : base;
+  // Web search via :online plugin is paid. Silently ignore it for :free models.
+  const webSearch = settings.webSearch && !isFreeModel(base);
+  const model = webSearch && !base.endsWith(":online") ? `${base}:online` : base;
 
   const body = {
     model,
     messages: [
-      { role: "system", content: buildSystemPrompt() },
-      { role: "user", content: buildUserPrompt(company) },
+      { role: "system", content: buildSystemPrompt(webSearch) },
+      { role: "user", content: buildUserPrompt(company, webSearch) },
     ],
     max_tokens: 8000,
     temperature: 0.4,
@@ -342,6 +361,26 @@ function applyProviderUi(provider) {
 
   $("#modelSelect").hidden = !isAnthropic;
   $("#openrouterModelWrapper").hidden = isAnthropic;
+
+  updateWebSearchAvailability();
+}
+
+function updateWebSearchAvailability() {
+  const activeProvider = document.querySelector("#providerSegmented .segment.is-active")?.dataset.provider || "openrouter";
+  const note = $("#webSearchNote");
+  const checkbox = $("#useWebSearch");
+
+  if (activeProvider === "openrouter") {
+    const current = $("#openrouterModelInput").value.trim();
+    if (isFreeModel(current)) {
+      checkbox.checked = false;
+      checkbox.disabled = true;
+      note.textContent = "Indisponible sur les modèles gratuits — le plugin de recherche web est payant. L'analyse utilisera les connaissances du modèle.";
+      return;
+    }
+  }
+  checkbox.disabled = false;
+  note.textContent = "";
 }
 
 function openSettings(hintMessage) {
@@ -369,6 +408,9 @@ function setupSettingsDialog() {
   document.querySelectorAll("#providerSegmented .segment").forEach((btn) => {
     btn.addEventListener("click", () => applyProviderUi(btn.dataset.provider));
   });
+
+  $("#openrouterModelInput").addEventListener("input", updateWebSearchAvailability);
+  $("#openrouterModelInput").addEventListener("change", updateWebSearchAvailability);
 
   dialog.addEventListener("close", () => {
     if (dialog.returnValue !== "save") return;

@@ -22,17 +22,38 @@ Vous entrez le nom d'une entreprise, le modèle effectue une recherche web, stru
 
 Pour chaque bloc : 3 à 6 éléments + une analyse stratégique. Plus une synthèse globale avec les sources consultées.
 
-## Lancer l'application
+## Deux modes d'utilisation
 
-Le projet est 100 % statique (HTML/CSS/JS vanilla). Aucun build n'est nécessaire.
+### 1. Application web (HTML/JS, aucun build)
 
 ```bash
-# Depuis la racine du projet
 python3 -m http.server 8080
 # puis ouvrez http://localhost:8080
 ```
 
-Vous pouvez aussi ouvrir `index.html` directement dans votre navigateur.
+Ou ouvrez `index.html` directement dans votre navigateur.
+
+### 2. CLI Python (`bmc_cli.py`)
+
+Pratique pour un usage scripté ou en terminal. Envoie la requête à OpenRouter, parse le JSON et affiche le canvas coloré.
+
+```bash
+pip install -r requirements.txt
+export OPENROUTER_API_KEY="sk-or-v1-…"
+
+python bmc_cli.py "Spotify"
+python bmc_cli.py --model google/gemini-2.0-flash-exp:free "Airbnb"
+python bmc_cli.py -o tesla.json "Tesla"
+python bmc_cli.py --raw "Patagonia" | jq .
+```
+
+Options :
+- `--model <id>` — change le modèle OpenRouter (défaut : `openai/gpt-3.5-turbo`). Surchargez aussi via `OPENROUTER_MODEL`.
+- `-o <fichier>` — écrit le JSON complet sur disque.
+- `--raw` — imprime le JSON brut sur stdout au lieu du rendu coloré.
+- `--insecure` — désactive la vérification SSL (debug uniquement, déconseillé).
+
+La clé est toujours lue depuis l'environnement — ne la passez jamais en argument.
 
 ## Configuration
 

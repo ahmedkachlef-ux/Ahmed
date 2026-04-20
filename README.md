@@ -1,34 +1,57 @@
-# Ahmed
+# Business Model Canvas Generator
 
-## Link Claude Code with VS Code
+Générateur dynamique de **Business Model Canvas** (Osterwalder & Pigneur) propulsé par l'API Claude avec recherche web en temps réel.
 
-### 1. Install the extension
+Vous entrez le nom d'une entreprise. Claude effectue une recherche web, structure les informations selon les **9 blocs standards** du BMC, ajoute une **analyse stratégique** pour chacun et produit une **synthèse globale**.
 
-- Open VS Code → Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-- Search **"Claude Code"** (publisher: `anthropic`) and click **Install**
-- Or open this workspace — VS Code will prompt you via the recommended extension
+## Les 9 blocs générés
 
-Requires VS Code **1.98.0+** and an Anthropic account.
+1. **Partenaires clés** — qui soutient l'activité ?
+2. **Activités clés** — que faut-il faire pour délivrer la valeur ?
+3. **Ressources clés** — quels actifs sont indispensables ?
+4. **Proposition de valeur** — quel problème résolu pour quel gain ?
+5. **Relations clients** — comment la relation est-elle entretenue ?
+6. **Canaux** — comment la valeur atteint-elle le client ?
+7. **Segments de clientèle** — pour qui créons-nous de la valeur ?
+8. **Structure de coûts** — qu'est-ce qui coûte le plus ?
+9. **Sources de revenus** — comment l'entreprise monétise-t-elle ?
 
-### 2. Sign in
+Pour chaque bloc : 3 à 6 éléments + une analyse stratégique. Plus une synthèse globale avec les sources consultées.
 
-Run the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → `Claude Code: Sign In`.
+## Lancer l'application
 
-### 3. Useful shortcuts
+Le projet est 100 % statique (HTML/CSS/JS vanilla). Aucun build n'est nécessaire.
 
-| Shortcut | Action |
-| --- | --- |
-| `Ctrl+Shift+P` → "Claude Code" | Command palette actions |
-| `Alt+K` / `Option+K` | Insert `@file:line` reference |
-| `Ctrl+Esc` / `Cmd+Esc` | Toggle focus editor ↔ Claude |
-| `Ctrl+Shift+Esc` / `Cmd+Shift+Esc` | New conversation tab |
+```bash
+# Depuis la racine du projet
+python3 -m http.server 8080
+# puis ouvrez http://localhost:8080
+```
 
-### 4. Features
+Vous pouvez aussi ouvrir `index.html` directement dans votre navigateur.
 
-- Inline diff review (accept / reject changes)
-- `@file` and `@file#5-10` mentions for context
-- Permission modes: Normal, Plan, Auto-accept
-- Session history and parallel conversation tabs
-- `/` command menu for models, extended thinking, MCP servers
+## Configuration
 
-Docs: <https://code.claude.com/docs/en/ide-integrations>
+Au premier lancement, une fenêtre vous demande :
+
+- Votre **clé API Anthropic** (format `sk-ant-…`), obtenable sur <https://console.anthropic.com>.
+- Le **modèle** Claude à utiliser (Opus 4.7 par défaut).
+- L'activation de la **recherche web en temps réel** (recommandée).
+
+La clé est stockée uniquement dans le `localStorage` de votre navigateur — elle ne quitte jamais votre machine, hors appels directs à l'API Anthropic.
+
+## Fonctionnalités
+
+- Interface moderne (dark, gradients, glass-morphism)
+- Layout fidèle au BMC officiel (5 colonnes × 2 rangées + coûts/revenus)
+- Recherche web intégrée via l'outil `web_search` de Claude
+- Analyse stratégique dépliable par bloc
+- Synthèse stratégique globale + sources cliquables
+- Export PDF via impression navigateur
+- Responsive (desktop / tablette / mobile)
+
+## Pile technique
+
+- HTML5 + CSS3 (Grid, backdrop-filter, color-mix)
+- JavaScript vanilla (Fetch API, `<dialog>`)
+- API Anthropic `messages` avec outil `web_search_20250305`

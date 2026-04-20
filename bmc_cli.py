@@ -28,6 +28,30 @@ from typing import Any
 import requests
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
+
+
+def _is_zero(value: Any) -> bool:
+    if value in (None, ""):
+        return False
+    try:
+        return float(value) == 0
+    except (TypeError, ValueError):
+        return False
+
+
+def fetch_free_models(insecure: bool = False, timeout: int = 20) -> list[dict[str, Any]]:
+    """Return a sorted list of OpenRouter models whose prompt+completion price is zero."""
+    res = requests.get(OPENROUTER_MODELS_URL, timeout=timeout, verify=not insecure)
+    res.raise_for_status()
+    data = res.json().get("data", [])
+    free = []
+    for m in data:
+        pricing = m.get("pricing") or {}
+        if _is_zero(pricing.get("prompt")) and _is_zero(pricing.get("completion")):
+            free.append({"id": m.get("id"), "name": m.get("name") or m.get("id")})
+    free.sort(key=lambda x: (x["id"] or "").lower())
+    return free
 
 # ────────────────────────────────────────────────────────────────────────
 #  Prompt

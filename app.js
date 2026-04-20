@@ -30,11 +30,72 @@ const DEFAULT_SETTINGS = {
   provider: "openrouter",
   apiKey: "",
   modelAnthropic: "claude-opus-4-7",
-  modelOpenRouter: "deepseek/deepseek-chat-v3-0324:free",
+  modelOpenRouter: "",
   webSearch: false,
 };
 
+const OPENROUTER_MODELS_ENDPOINT = "https://openrouter.ai/api/v1/models";
 const isFreeModel = (id) => typeof id === "string" && id.endsWith(":free");
+
+let openRouterModelsCache = null;
+
+async function fetchOpenRouterModels() {
+  if (openRouterModelsCache) return openRouterModelsCache;
+  const res = await fetch(OPENROUTER_MODELS_ENDPOINT, { headers: { "Accept": "application/json" } });
+  if (!res.ok) throw new Error(`OpenRouter /models: HTTP ${res.status}`);
+  const data = await res.json();
+  const all = Array.isArray(data.data) ? data.data : [];
+
+  const isFreePriced = (m) => {
+    const p = m.pricing || {};
+    const zero = (v) => v === "0" || v === 0 || v === "0.0" || parseFloat(v) === 0;
+    return zero(p.prompt) && zero(p.completion);
+  };
+
+  const free = all.filter((m) => isFreePriced(m) || isFreeModel(m.id));
+  free.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+
+  const paidPopular = all
+    .filter((m) => !isFreePriced(m) && !isFreeModel(m.id))
+    .filter((m) => /claude-(haiku|sonnet)|gpt-4o-mini|gemini-2\.5-flash|gemini-2\.0-flash/i.test(m.id));
+  paidPopular.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+
+  openRouterModelsCache = { free, paidPopular };
+  return openRouterModelsCache;
+}
+
+function populateModelDatalist(free, paidPopular) {
+  const datalist = $("#openrouterModels");
+  const input = $("#openrouterModelInput");
+  const status = $("#modelListStatus");
+
+  const opts = [];
+  for (const m of free) {
+    opts.push(`<option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.id)} (gratuit)</option>`);
+  }
+  for (const m of paidPopular) {
+    opts.push(`<option value="${escapeHtml(m.id)}">⚡ ${escapeHtml(m.name || m.id)} (payant)</option>`);
+  }
+  datalist.innerHTML = opts.join("");
+
+  input.placeholder = free[0]?.id ? `ex. ${free[0].id}` : "ex. openai/gpt-4o-mini";
+  status.innerHTML = `${free.length} modèles <strong>gratuits</strong> disponibles. Liste rafraîchie depuis OpenRouter. <a href="https://openrouter.ai/models?order=top-weekly&max_price=0" target="_blank" rel="noopener noreferrer">Voir la liste complète ↗</a>`;
+
+  // If the user has no saved model yet, pre-fill with the first free one.
+  if (!input.value && free[0]?.id) input.value = free[0].id;
+}
+
+async function loadAndRenderOpenRouterModels() {
+  const status = $("#modelListStatus");
+  status.textContent = "Chargement de la liste des modèles depuis OpenRouter…";
+  try {
+    const { free, paidPopular } = await fetchOpenRouterModels();
+    populateModelDatalist(free, paidPopular);
+    updateWebSearchAvailability();
+  } catch (err) {
+    status.innerHTML = `Impossible de charger la liste (${escapeHtml(err.message)}). Entrez un ID manuellement — voir <a href="https://openrouter.ai/models?order=top-weekly&max_price=0" target="_blank" rel="noopener noreferrer">openrouter.ai/models</a>.`;
+  }
+}
 
 /* ---------- Settings ---------- */
 
@@ -235,6 +296,10 @@ async function buildApiError(res, providerLabel) {
     if (parsed.error?.message) msg = `${providerLabel} : ${parsed.error.message}`;
     else if (typeof parsed.error === "string") msg = `${providerLabel} : ${parsed.error}`;
   } catch { /* keep default */ }
+  if (/no endpoints found/i.test(msg)) {
+    msg += " — ce modèle a probablement été retiré. Ouvrez ⚙️ Paramètres pour choisir un modèle à jour.";
+    openRouterModelsCache = null;
+  }
   return new Error(msg);
 }
 
@@ -322,6 +387,10 @@ async function generate(company) {
     openSettings("Ajoutez votre clé API pour démarrer l'analyse.");
     return;
   }
+  if (settings.provider === "openrouter" && !settings.modelOpenRouter) {
+    openSettings("Choisissez un modèle OpenRouter dans la liste.");
+    return;
+  }
 
   clearCanvas();
   showLoading(`Recherche en cours sur « ${company} »…`);
@@ -362,6 +431,7 @@ function applyProviderUi(provider) {
   $("#modelSelect").hidden = !isAnthropic;
   $("#openrouterModelWrapper").hidden = isAnthropic;
 
+  if (!isAnthropic) loadAndRenderOpenRouterModels();
   updateWebSearchAvailability();
 }
 
@@ -463,19 +533,32 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function migrateOldSettings() {
+  // v1 -> v2 (Anthropic-only -> multi-provider)
   const oldKey = "bmc-generator.settings.v1";
-  if (localStorage.getItem(STORAGE_KEY)) return;
-  try {
-    const raw = localStorage.getItem(oldKey);
-    if (!raw) return;
-    const old = JSON.parse(raw);
-    const migrated = {
-      provider: "anthropic",
-      apiKey: old.apiKey || "",
-      modelAnthropic: old.model || DEFAULT_SETTINGS.modelAnthropic,
-      modelOpenRouter: DEFAULT_SETTINGS.modelOpenRouter,
-      webSearch: old.webSearch !== false,
-    };
-    saveSettings(migrated);
-  } catch { /* ignore */ }
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    try {
+      const raw = localStorage.getItem(oldKey);
+      if (raw) {
+        const old = JSON.parse(raw);
+        saveSettings({
+          provider: "anthropic",
+          apiKey: old.apiKey || "",
+          modelAnthropic: old.model || DEFAULT_SETTINGS.modelAnthropic,
+          modelOpenRouter: "",
+          webSearch: old.webSearch !== false,
+        });
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Clear previously hardcoded free model IDs that may be deprecated.
+  const stale = new Set([
+    "deepseek/deepseek-chat-v3-0324:free",
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+  ]);
+  const current = loadSettings();
+  if (current.modelOpenRouter && stale.has(current.modelOpenRouter)) {
+    saveSettings({ ...current, modelOpenRouter: "" });
+  }
 }

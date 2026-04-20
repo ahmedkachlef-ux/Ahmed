@@ -237,21 +237,9 @@
         <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (économique)</option>
       </select>
       <div id="openrouterModelWrapper" class="model-combo">
-        <input id="openrouterModelInput" list="openrouterModels" placeholder="ex. deepseek/deepseek-chat-v3-0324:free" autocomplete="off" />
-        <datalist id="openrouterModels">
-          <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (gratuit, recommandé)</option>
-          <option value="deepseek/deepseek-r1:free">DeepSeek R1 (gratuit, raisonnement)</option>
-          <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (gratuit)</option>
-          <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (gratuit, rapide)</option>
-          <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 2.5 72B (gratuit)</option>
-          <option value="mistralai/mistral-small-3.1-24b-instruct:free">Mistral Small 3.1 (gratuit)</option>
-          <option value="microsoft/mai-ds-r1:free">MAI DS R1 (gratuit)</option>
-          <option value="nvidia/llama-3.1-nemotron-70b-instruct:free">Nemotron 70B (gratuit)</option>
-          <option value="anthropic/claude-sonnet-4.5">⚡ Claude Sonnet 4.5 (payant)</option>
-          <option value="openai/gpt-4o-mini">⚡ GPT-4o mini (payant)</option>
-          <option value="google/gemini-2.5-pro">⚡ Gemini 2.5 Pro (payant)</option>
-        </datalist>
-        <small class="field-hint">Les modèles <strong>:free</strong> sont 100 % gratuits (rate-limited). Tout ID OpenRouter valide fonctionne.</small>
+        <input id="openrouterModelInput" list="openrouterModels" placeholder="Chargement des modèles disponibles…" autocomplete="off" />
+        <datalist id="openrouterModels"></datalist>
+        <small id="modelListStatus" class="field-hint">Chargement de la liste des modèles depuis OpenRouter…</small>
       </div>
 
       <label class="checkbox-row">

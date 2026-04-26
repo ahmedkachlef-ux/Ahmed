@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 255 247 237;
+  --fg: 15 23 42;
+  --card: 255 255 255;
+  --muted: 100 116 139;
+  --border: 226 232 240;
+}
+.dark {
+  --bg: 7 11 23;
+  --fg: 241 245 249;
+  --card: 15 23 42;
+  --muted: 148 163 184;
+  --border: 30 41 59;
+}
+
+html, body { height: 100%; }
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-feature-settings: "ss01","cv11";
+}
+
+@layer components {
+  .container-page { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+  .card {
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--border));
+    @apply rounded-2xl shadow-card;
+  }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/40; }
+  .btn-primary { @apply bg-brand-gradient text-white shadow-glow hover:brightness-110 active:scale-[.98]; }
+  .btn-ghost { @apply hover:bg-brand-50 dark:hover:bg-ink-800 text-ink-700 dark:text-ink-100; }
+  .btn-outline { @apply border border-ink-200 dark:border-ink-700 hover:border-brand-400; }
+  .input {
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--border));
+    @apply w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/30;
+  }
+  .label { @apply text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium; }
+  .chip-brand { @apply chip bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300; }
+  .chip-muted { @apply chip bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-300; }
+  .gradient-text { @apply bg-clip-text text-transparent bg-brand-gradient; }
+  .hero-grid {
+    background-image: linear-gradient(rgba(148,163,184,.12) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(148,163,184,.12) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: radial-gradient(ellipse at top, black 50%, transparent 80%);
+  }
+  .table { @apply w-full text-left text-sm; }
+  .table th { @apply text-xs uppercase tracking-wider text-ink-500 dark:text-ink-400 font-semibold py-3 px-3; }
+  .table td { @apply py-3 px-3 border-t border-ink-100 dark:border-ink-800; }
+  .ring-brand { @apply ring-2 ring-brand-400/40; }
+}
+
+[dir="rtl"] .flip-rtl { transform: scaleX(-1); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,.45); border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }

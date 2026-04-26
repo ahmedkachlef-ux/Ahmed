@@ -1,34 +1,88 @@
-# Ahmed
+# ADVANCIA Trainings
 
-## Link Claude Code with VS Code
+A premium full-stack training & learning management platform built with Next.js
+14 (App Router), TypeScript, Tailwind CSS, MongoDB (Mongoose), Framer Motion,
+Recharts, XLSX, pdf-lib, bcrypt, and jose.
 
-### 1. Install the extension
+## What's inside
 
-- Open VS Code → Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-- Search **"Claude Code"** (publisher: `anthropic`) and click **Install**
-- Or open this workspace — VS Code will prompt you via the recommended extension
+- **Public website** — premium homepage (hero, featured trainings, categories,
+  upcoming sessions calendar preview, testimonials, premium CTA), a small funny
+  *Avatar Pop* game with avatars, recommendation stars on every training card,
+  catalogue with search/category/level/format/sort, training detail page with
+  cover, trainer, duration, dates, format, outcomes, modules, schedules and
+  related trainings, and a calendar page with filters.
+- **Authentication** — email/password registration with email verification,
+  email/password login, social login & registration with Google, Facebook and
+  Yahoo (graceful demo fallback when credentials aren't configured), secure
+  password hashing with bcrypt, signed session cookies with jose, role-protected
+  routes via middleware. Three roles: `user`, `admin`, `super_admin`.
+- **Registration form** — old/simple form with full name, email, age, gender,
+  company, department, password, plus a funny avatar picker.
+- **User dashboard** — overview, profile completeness, current training,
+  recommendations, notifications, payment history, activity, upcoming sessions.
+  Profile management (avatar, picture, language, theme, password change). Alexa
+  AI assistant.
+- **Admin dashboard** — KPIs, charts, learner management with filters, status
+  management, enrollment requests with accept/reject, notifications, Excel
+  import, and Excel/PDF exports.
+- **Super Admin dashboard** — full visibility, advanced analytics, user & admin
+  management, training CRUD, training status monitoring, activity logs, full
+  exports. Alex AI assistant.
+- **AI assistants** — Alexa (users) and Alex (super admin) connect to ChatGPT
+  via the OpenAI API for natural conversation; both also recommend trainings
+  using the platform's recommendation engine. If `OPENAI_API_KEY` is missing,
+  they gracefully fall back to a curated, recommendation-only response.
+- **Recommendations** — ranking based on department, interests, focus tracks,
+  search intent, popularity and rating. Stars are shown consistently across the
+  homepage, catalogue, dashboard, chatbot recommendations and training detail
+  pages.
+- **Reports & exports** — Excel (xlsx) and PDF (pdf-lib) of users with the full
+  structured set of columns: user ID, record ID, full name, first name, last
+  name, gender, age, department, role, company, status, active state, training
+  state, in training, current training, training code, category, format, trainer
+  name, training start/end, enrollment status, progress %, email, phone,
+  address, auth provider, email verified, onboarding completed, focus tracks,
+  joined date, last login. PDFs are professional, branded, paginated tables —
+  not raw JSON dumps.
+- **Multilingual** — English, French and Arabic, with RTL handling.
+- **Light & dark mode** — icon toggle in the navbar; the brand logo remains
+  readable in both modes.
 
-Requires VS Code **1.98.0+** and an Anthropic account.
+## Running locally
 
-### 2. Sign in
+```bash
+npm install
+cp .env.example .env       # set MONGODB_URI, JWT_SECRET, optional OAuth keys
+npm run seed               # create the demo Super Admin / Admin / User accounts
+npm run dev
+```
 
-Run the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → `Claude Code: Sign In`.
+Open `http://localhost:3000` and sign in with one of the seeded accounts:
 
-### 3. Useful shortcuts
+| Role        | Email                          | Password         |
+| ----------- | ------------------------------ | ---------------- |
+| Super Admin | super@advancia.training        | Advancia#2026    |
+| Admin       | admin@advancia.training        | Advancia#2026    |
+| User        | user@advancia.training         | Advancia#2026    |
 
-| Shortcut | Action |
-| --- | --- |
-| `Ctrl+Shift+P` → "Claude Code" | Command palette actions |
-| `Alt+K` / `Option+K` | Insert `@file:line` reference |
-| `Ctrl+Esc` / `Cmd+Esc` | Toggle focus editor ↔ Claude |
-| `Ctrl+Shift+Esc` / `Cmd+Shift+Esc` | New conversation tab |
+## Environment variables
 
-### 4. Features
+Copy `.env.example` to `.env` and fill in:
 
-- Inline diff review (accept / reject changes)
-- `@file` and `@file#5-10` mentions for context
-- Permission modes: Normal, Plan, Auto-accept
-- Session history and parallel conversation tabs
-- `/` command menu for models, extended thinking, MCP servers
+- `MONGODB_URI`, `JWT_SECRET`, `APP_URL` (required)
+- `GOOGLE_CLIENT_ID`/`SECRET`, `FACEBOOK_CLIENT_ID`/`SECRET`,
+  `YAHOO_CLIENT_ID`/`SECRET` (optional — without them, social sign-in is in
+  demo mode that creates a temporary social account so the flow remains usable)
+- `OPENAI_API_KEY`, `OPENAI_MODEL` (optional — without them, Alexa/Alex use a
+  recommendation-only fallback)
 
-Docs: <https://code.claude.com/docs/en/ide-integrations>
+## Tech notes
+
+- App Router with server components for dashboards and route handlers under
+  `src/app/api/*` for the JSON API
+- MongoDB models in `src/models/*`
+- Auth helpers in `src/lib/auth.ts`, JWT helpers in `src/lib/jwt.ts`,
+  middleware in `src/middleware.ts`
+- Recommendations in `src/lib/recommend.ts`
+- Exports in `src/lib/exportRows.ts` and `src/app/api/export/users/*`

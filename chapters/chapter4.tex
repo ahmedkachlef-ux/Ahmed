@@ -1,0 +1,219 @@
+% =============================================================
+%  CHAPTER 4 - RELEASE 2 : TRAINING CATALOG & COURSE MANAGEMENT
+% =============================================================
+
+\chapteroverview{Release 2 : Training Catalog \& Course Management}{
+  \item Introduction
+  \item Sprint Backlog
+  \item Refined Use Cases
+  \item Sequence Diagrams
+  \item Class Diagram of the Module
+  \item Achieved Increment
+  \item Conclusion
+}
+
+\section{Introduction}
+
+The second release shifts the focus from \textit{identity} to \textit{content}. It builds the training catalog browsed by users and the course-management workspace used by trainers and the super-administrator. This is the functional heart of the platform : without trainings, there is nothing to reserve.
+
+% ---------- 4.2 Sprint backlog ----------
+\section{Sprint Backlog}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}c|X|c|c|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} ID} & \textbf{\color{white} Task} & \textbf{\color{white} Sprint} & \textbf{\color{white} Status}\\
+\hline
+T9  & DB design (training, course, category, trainer)        & S3 & \checkmark \\\hline
+T10 & Public catalog : list, filter, search                  & S3 & \checkmark \\\hline
+T11 & Training detail page                                   & S3 & \checkmark \\\hline
+T12 & CRUD trainings (super-admin)                           & S4 & \checkmark \\\hline
+T13 & CRUD courses inside a training (super-admin / trainer) & S4 & \checkmark \\\hline
+T14 & Trainer assignment to a training                       & S4 & \checkmark \\\hline
+T15 & Image \& document upload for a course                  & S4 & \checkmark \\\hline
+\end{tabularx}
+\caption{Sprint backlog -- Release 2}
+\label{tab:sb2}
+\end{table}
+
+% ---------- 4.3 Use cases ----------
+\section{Refined Use Cases}
+
+\subsection{Detailed use case : \textit{Browse trainings}}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}p{3.5cm}|X|}
+\hline
+\textbf{Title}        & Browse trainings \\\hline
+\textbf{Actor}        & User \\\hline
+\textbf{Goal}         & Discover and filter the available trainings. \\\hline
+\textbf{Pre-condition}& The user has access to the catalog page. \\\hline
+\textbf{Main scenario}& 1. The user opens the catalog. \newline
+                        2. The system displays the list of trainings. \newline
+                        3. The user filters by category, level or trainer. \newline
+                        4. The system updates the result list dynamically. \newline
+                        5. The user opens a training to see its detailed page. \\\hline
+\textbf{Alternative}  & 2.a If the catalog is empty, the system displays a friendly empty state. \\\hline
+\textbf{Post-condition}& The user has all the information needed to decide whether to reserve. \\\hline
+\end{tabularx}
+\caption{Detailed use case : Browse trainings}
+\label{tab:uc-browse}
+\end{table}
+
+\subsection{Use case diagram of Release 2}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  uc/.style={ellipse, draw=primary, fill=softblue, minimum width=2.6cm, align=center, inner sep=2pt}
+]
+  \draw[draw=primary, thick, rounded corners=8pt] (-0.5,-4) rectangle (8.5,4);
+  \node[font=\bfseries\color{primary}] at (4,3.6) {Catalog \& Course Module};
+
+  \node[uc] (browse) at (4, 2.6) {Browse trainings};
+  \node[uc] (detail) at (4, 1.5) {See training detail};
+  \node[uc] (filter) at (4, 0.4) {Filter / search};
+  \node[uc] (mt)     at (4,-0.7) {Manage trainings};
+  \node[uc] (mc)     at (4,-1.8) {Manage courses};
+  \node[uc] (assign) at (4,-2.9) {Assign trainer};
+
+  \node[align=center] (user) at (-3,2)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\\textbf{User}};
+
+  \node[align=center] (super) at (11,-1)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\\textbf{Super-Admin}};
+
+  \node[align=center] (trainer) at (11,2)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\\textbf{Trainer}};
+
+  \draw (user) -- (browse);
+  \draw (user) -- (detail);
+  \draw (user) -- (filter);
+  \draw (super) -- (mt);
+  \draw (super) -- (mc);
+  \draw (super) -- (assign);
+  \draw (trainer) -- (mc);
+\end{tikzpicture}
+\caption{Use case diagram -- Release 2}
+\label{fig:uc-r2}
+\end{figure}
+
+% ---------- 4.4 Sequence diagram ----------
+\section{Sequence Diagrams}
+
+\subsection{Sequence : Add a training (super-admin)}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  lifeline/.style={dashed, color=primary},
+  msg/.style={->, thick, color=primary},
+  ret/.style={->, thick, dashed, color=secondary},
+  actor/.style={rectangle, draw=primary, fill=softblue, minimum width=1.8cm, minimum height=0.7cm}
+]
+  \node[actor] (a) at (0,0) {Super-Admin};
+  \node[actor] (b) at (3.2,0) {UI};
+  \node[actor] (c) at (6.4,0) {API};
+  \node[actor] (d) at (9.6,0) {DB};
+
+  \foreach \n in {a,b,c,d} \draw[lifeline] (\n.south) -- ++(0,-7);
+
+  \draw[msg] (0,-1)   -- node[above,font=\scriptsize]{fill training form} (3.2,-1);
+  \draw[msg] (3.2,-2) -- node[above,font=\scriptsize]{POST /trainings} (6.4,-2);
+  \draw[msg] (6.4,-3) -- node[above,font=\scriptsize]{INSERT training} (9.6,-3);
+  \draw[ret] (9.6,-4) -- node[above,font=\scriptsize]{id created} (6.4,-4);
+  \draw[ret] (6.4,-5) -- node[above,font=\scriptsize]{201 Created} (3.2,-5);
+  \draw[ret] (3.2,-6) -- node[above,font=\scriptsize]{display success toast} (0,-6);
+\end{tikzpicture}
+\caption{Sequence diagram : Add a training}
+\label{fig:sd-addtraining}
+\end{figure}
+
+% ---------- 4.5 Class diagram ----------
+\section{Class Diagram of the Module}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  class/.style={rectangle split, rectangle split parts=3,
+                rectangle split part fill={primary, white, white},
+                draw=primary, text=white, rectangle split draw splits=true, align=left, inner sep=4pt}
+]
+  \node[class] (cat) at (0,0) {%
+    \nodepart{one}\bfseries Category
+    \nodepart[text=black]{two}
+      - id : int\\
+      - name : string\\
+      - description : text
+    \nodepart[text=black]{three}
+      + listTrainings()
+  };
+
+  \node[class, right=2.5cm of cat] (tr) {%
+    \nodepart{one}\bfseries Training
+    \nodepart[text=black]{two}
+      - id : int\\
+      - title : string\\
+      - description : text\\
+      - duration : int\\
+      - price : decimal\\
+      - level : enum
+    \nodepart[text=black]{three}
+      + addCourse()\\
+      + assignTrainer()
+  };
+
+  \node[class, right=2.5cm of tr] (course) {%
+    \nodepart{one}\bfseries Course
+    \nodepart[text=black]{two}
+      - id : int\\
+      - title : string\\
+      - content : text\\
+      - resources : json\\
+      - order : int
+    \nodepart[text=black]{three}
+      + uploadResource()
+  };
+
+  \node[class, below=1.5cm of tr] (trainer) {%
+    \nodepart{one}\bfseries Trainer
+    \nodepart[text=black]{two}
+      - id : int\\
+      - speciality : string\\
+      - bio : text
+    \nodepart[text=black]{three}
+      + listAssigned()
+  };
+
+  \draw[->, thick, color=primary] (cat) -- node[above,font=\scriptsize]{1..*} (tr);
+  \draw[->, thick, color=primary] (tr) -- node[above,font=\scriptsize]{1..*} (course);
+  \draw[->, thick, color=primary] (trainer) -- node[right,font=\scriptsize]{*} (tr);
+\end{tikzpicture}
+\caption{Class diagram -- Catalog \& Course module}
+\label{fig:cd-r2}
+\end{figure}
+
+% ---------- 4.6 Increment ----------
+\section{Achieved Increment}
+
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item A public catalog with filter and search.
+  \item A detailed page for each training, with the list of its courses.
+  \item A super-admin workspace for the full CRUD on trainings, categories and courses.
+  \item Trainer assignment, with a dedicated personal area for trainers.
+\end{itemize}
+
+\section{Conclusion}
+
+The platform now exposes a real, browsable training catalog backed by a complete administration workspace. The third release will activate the most dynamic part of the system : reservations, notifications, the smart dashboard and the chatbot.

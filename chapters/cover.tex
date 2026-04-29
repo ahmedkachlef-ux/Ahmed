@@ -1,0 +1,128 @@
+% =============================================================
+%  COVER PAGE - Tunisian PFE Guide compliant
+%  Republic of Tunisia logo : white background, fixed size
+%  All logos resized to consistent dimensions
+% =============================================================
+
+\begin{titlepage}
+\thispagestyle{empty}
+
+% ---------- TOP BANDS : ministry header (FR) ----------
+\begin{center}
+{\large\bfseries République Tunisienne}\\[0.15cm]
+{\normalsize Ministère de l'Enseignement Supérieur}\\
+{\normalsize et de la Recherche Scientifique}\\[0.25cm]
+{\normalsize Direction Générale des Études Technologiques}\\[0.35cm]
+{\normalsize Institut Supérieur des Études Technologiques de Siliana}
+\end{center}
+
+\vspace{0.4cm}
+
+% ---------- LOGOS ROW : 3 logos, identical height, white background ----------
+%
+% Each logo is wrapped in a 3 cm x 3 cm WHITE-FILLED box (no border) so
+% that any transparency is replaced by pure white. The image is forced
+% to a fixed height of 2.8 cm with keepaspectratio, which guarantees
+% that the three logos appear visually balanced regardless of their
+% original aspect ratio.
+%
+% \logoplate is a small helper that gracefully falls back to a labelled
+% placeholder when the image file is missing, so the document still
+% compiles before the real logos are dropped into images/logos/.
+%
+\newcommand{\logoplate}[2]{%
+  \begin{tikzpicture}[baseline=(L.center)]
+    \node[fill=white, draw=white, minimum width=3cm, minimum height=3cm,
+          inner sep=2pt] (L)
+      {\IfFileExists{#1}{%
+         \includegraphics[height=2.8cm,keepaspectratio]{#1}%
+       }{%
+         \begin{tikzpicture}
+           \draw[draw=primary, dashed, fill=white]
+             (0,0) rectangle (2.6,2.6);
+           \node[align=center, font=\scriptsize\color{primary}]
+             at (1.3,1.3) {#2};
+         \end{tikzpicture}%
+       }};
+  \end{tikzpicture}%
+}
+
+\begin{center}
+\logoplate{images/logos/republic_tunisia.png}{Republic of\\Tunisia logo}
+\hspace{1.2cm}
+\logoplate{images/logos/dget.png}{DGET\\logo}
+\hspace{1.2cm}
+\logoplate{images/logos/iset_siliana.png}{ISET\\Siliana logo}
+\end{center}
+
+\vspace{0.6cm}
+
+% ---------- DEPARTMENT ----------
+\begin{center}
+{\large\bfseries Department of Computer Sciences}
+\end{center}
+
+\vspace{0.5cm}
+
+% ---------- DECORATIVE FRAME WITH PROJECT TITLE ----------
+\begin{center}
+\begin{tikzpicture}
+  \draw[line width=2pt, color=primary, rounded corners=8pt]
+    (-7.8,-3.2) rectangle (7.8,3.2);
+  \draw[line width=0.6pt, color=primary, rounded corners=6pt]
+    (-7.6,-3.0) rectangle (7.6,3.0);
+
+  \node at (0, 2.0) {\Large\bfseries End of Studies Project};
+  \node at (0, 1.4) {\small In view of obtaining the};
+  \node at (0, 0.95) {\large\bfseries Applied Bachelor's Degree in Computer Science};
+  \node at (0, 0.45) {\small Specialty : \textbf{Information Systems Development}};
+
+  \draw[color=primary, line width=0.4pt] (-6,0.05) -- (6,0.05);
+
+  \node[align=center, text width=14cm] at (0,-0.9) {%
+    {\LARGE\bfseries\color{primary} Study and Development of a Smart}\\[0.1cm]
+    {\LARGE\bfseries\color{primary} Training Platform "ADVANCIA"}};
+
+  \node at (0,-2.4) {\small\itshape A multi-actor web platform for online training management};
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.7cm}
+
+% ---------- ELABORATED BY / SUPERVISED BY ----------
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+{\bfseries\color{primary} Elaborated by:}\\[0.3cm]
+Istabrak BEN KHMAYS\\[0.1cm]
+Sayhi MAHDI
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+{\bfseries\color{primary} Supervised by:}\\[0.3cm]
+Mr./Ms. [Academic Supervisor]\\[0.1cm]
+Mr./Ms. [Professional Supervisor]
+\end{minipage}
+
+\vfill
+
+% ---------- COMPANY ----------
+\begin{center}
+{\bfseries\color{primary} Internship Company:} \quad \textsc{ADVANCIA Training Center}
+\end{center}
+
+\vspace{0.4cm}
+
+% ---------- ACADEMIC YEAR ----------
+\begin{center}
+\begin{tikzpicture}
+  \draw[line width=1pt, color=primary] (-4,0) -- (4,0);
+  \node[fill=white, inner sep=4pt] at (0,0)
+    {\large\bfseries\color{primary} Academic Year 2025 / 2026};
+\end{tikzpicture}
+\end{center}
+
+\end{titlepage}
+
+\cleardoublepage

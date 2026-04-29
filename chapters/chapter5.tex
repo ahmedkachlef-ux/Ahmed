@@ -1,0 +1,274 @@
+% =============================================================
+%  CHAPTER 5 - RELEASE 3 : RESERVATION, NOTIFICATIONS, DASHBOARD & CHATBOT
+% =============================================================
+
+\chapteroverview{Release 3 : Reservation, Notifications, Dashboard \& Chatbot}{
+  \item Introduction
+  \item Sprint Backlog
+  \item Refined Use Cases
+  \item Sequence Diagrams
+  \item Class Diagram of the Module
+  \item Smart Dashboard \& KPIs
+  \item Achieved Increment
+  \item Conclusion
+}
+
+\section{Introduction}
+
+The third release brings the platform to life. It activates the \textit{reservation} workflow, the \textit{notifications} channel, the \textit{smart dashboard} for the administrators and the \textit{chatbot} that turns the dashboard into a conversational tool. It also closes the import / export feature for Excel and PDF.
+
+% ---------- 5.2 ----------
+\section{Sprint Backlog}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}c|X|c|c|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} ID} & \textbf{\color{white} Task} & \textbf{\color{white} Sprint} & \textbf{\color{white} Status}\\
+\hline
+T16 & DB design : reservation, notification        & S5 & \checkmark \\\hline
+T17 & Reserve a training (user)                    & S5 & \checkmark \\\hline
+T18 & Accept / refuse reservation (super-admin)    & S5 & \checkmark \\\hline
+T19 & E-mail \& in-app notifications               & S5 & \checkmark \\\hline
+T20 & Smart dashboard : KPIs \& charts             & S6 & \checkmark \\\hline
+T21 & Chatbot integration                          & S6 & \checkmark \\\hline
+T22 & Import users from Excel                      & S6 & \checkmark \\\hline
+T23 & Export data to Excel \& PDF                  & S6 & \checkmark \\\hline
+\end{tabularx}
+\caption{Sprint backlog -- Release 3}
+\label{tab:sb3}
+\end{table}
+
+% ---------- 5.3 use cases ----------
+\section{Refined Use Cases}
+
+\subsection{Detailed use case : \textit{Reserve a training}}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}p{3.5cm}|X|}
+\hline
+\textbf{Title}        & Reserve a training \\\hline
+\textbf{Actor}        & User \\\hline
+\textbf{Goal}         & Book a seat in an upcoming training session. \\\hline
+\textbf{Pre-condition}& The user is authenticated and the training is open for reservations. \\\hline
+\textbf{Main scenario}& 1. The user opens the training detail page. \newline
+                        2. The user clicks \textit{Reserve}. \newline
+                        3. The system creates a reservation with status \textit{pending}. \newline
+                        4. The super-admin receives a notification. \newline
+                        5. The super-admin accepts or refuses the reservation. \newline
+                        6. The user receives a notification of the decision. \\\hline
+\textbf{Alternative}  & 5.a If refused, the reservation is closed and the seat is freed. \\\hline
+\textbf{Post-condition}& The user has a confirmed (or refused) reservation traced in his dashboard. \\\hline
+\end{tabularx}
+\caption{Detailed use case : Reserve a training}
+\label{tab:uc-reserve}
+\end{table}
+
+\subsection{Activity diagram : Reservation workflow}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  start/.style={circle, draw=primary, fill=primary, minimum size=0.4cm, inner sep=0pt},
+  stop/.style={circle, draw=primary, fill=white, minimum size=0.5cm, inner sep=0pt,
+               path picture={\fill[primary] (path picture bounding box.center) circle (0.18);}},
+  act/.style={rectangle, draw=primary, fill=softblue, rounded corners=8pt,
+              minimum width=3.4cm, minimum height=0.8cm, align=center},
+  dec/.style={diamond, draw=primary, fill=white, aspect=1.6, align=center, inner sep=2pt},
+  arr/.style={->, thick, color=primary}
+]
+  \node[start] (s) {};
+  \node[act, below=0.4cm of s] (a1) {Click "Reserve"};
+  \node[act, below=0.4cm of a1] (a2) {Create pending reservation};
+  \node[act, below=0.4cm of a2] (a3) {Notify super-admin};
+  \node[dec, below=0.4cm of a3] (d) {Accept ?};
+  \node[act, below left=0.4cm and 0.6cm of d] (a4) {Confirm reservation};
+  \node[act, below right=0.4cm and 0.6cm of d] (a5) {Refuse reservation};
+  \node[act, below=2.4cm of d] (a6) {Notify the user};
+  \node[stop, below=0.4cm of a6] (e) {};
+
+  \draw[arr] (s) -- (a1);
+  \draw[arr] (a1) -- (a2);
+  \draw[arr] (a2) -- (a3);
+  \draw[arr] (a3) -- (d);
+  \draw[arr] (d) -- node[above,font=\scriptsize]{yes} (a4);
+  \draw[arr] (d) -- node[above,font=\scriptsize]{no}  (a5);
+  \draw[arr] (a4) |- (a6);
+  \draw[arr] (a5) |- (a6);
+  \draw[arr] (a6) -- (e);
+\end{tikzpicture}
+\caption{Activity diagram of the reservation workflow}
+\label{fig:ad-reservation}
+\end{figure}
+
+% ---------- 5.4 sequence ----------
+\section{Sequence Diagrams}
+
+\subsection{Sequence : Reserve and notify}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  lifeline/.style={dashed, color=primary},
+  msg/.style={->, thick, color=primary},
+  ret/.style={->, thick, dashed, color=secondary},
+  actor/.style={rectangle, draw=primary, fill=softblue, minimum width=1.7cm, minimum height=0.7cm}
+]
+  \node[actor] (u)  at (0,0)   {User};
+  \node[actor] (ui) at (2.7,0) {UI};
+  \node[actor] (api)at (5.4,0) {API};
+  \node[actor] (db) at (8.1,0) {DB};
+  \node[actor] (no) at (10.8,0){Notif};
+
+  \foreach \n in {u,ui,api,db,no} \draw[lifeline] (\n.south) -- ++(0,-7.5);
+
+  \draw[msg] (0,-1)   -- node[above,font=\scriptsize]{Reserve()} (2.7,-1);
+  \draw[msg] (2.7,-2) -- node[above,font=\scriptsize]{POST /reservations} (5.4,-2);
+  \draw[msg] (5.4,-3) -- node[above,font=\scriptsize]{INSERT pending} (8.1,-3);
+  \draw[ret] (8.1,-4) -- node[above,font=\scriptsize]{ok} (5.4,-4);
+  \draw[msg] (5.4,-5) -- node[above,font=\scriptsize]{notify super-admin} (10.8,-5);
+  \draw[ret] (5.4,-6) -- node[above,font=\scriptsize]{201 Created} (2.7,-6);
+  \draw[ret] (2.7,-7) -- node[above,font=\scriptsize]{toast "pending"} (0,-7);
+\end{tikzpicture}
+\caption{Sequence diagram : Reserve and notify}
+\label{fig:sd-reserve}
+\end{figure}
+
+% ---------- 5.5 class diagram ----------
+\section{Class Diagram of the Module}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  class/.style={rectangle split, rectangle split parts=3,
+                rectangle split part fill={primary, white, white},
+                draw=primary, text=white, rectangle split draw splits=true, align=left, inner sep=4pt}
+]
+  \node[class] (res) at (0,0) {%
+    \nodepart{one}\bfseries Reservation
+    \nodepart[text=black]{two}
+      - id : int\\
+      - userId : int\\
+      - trainingId : int\\
+      - status : enum\\
+      - createdAt : date
+    \nodepart[text=black]{three}
+      + accept()\\
+      + refuse()
+  };
+
+  \node[class, right=2.5cm of res] (notif) {%
+    \nodepart{one}\bfseries Notification
+    \nodepart[text=black]{two}
+      - id : int\\
+      - recipientId : int\\
+      - type : enum\\
+      - message : text\\
+      - read : bool
+    \nodepart[text=black]{three}
+      + send()\\
+      + markRead()
+  };
+
+  \node[class, right=2.5cm of notif] (kpi) {%
+    \nodepart{one}\bfseries DashboardKPI
+    \nodepart[text=black]{two}
+      - users : int\\
+      - reservations : int\\
+      - revenue : decimal\\
+      - top5Trainings : list
+    \nodepart[text=black]{three}
+      + refresh()
+  };
+
+  \draw[->, thick, color=primary] (res) -- (notif);
+  \draw[->, thick, color=primary] (notif) -- (kpi);
+\end{tikzpicture}
+\caption{Class diagram -- Reservation, Notification \& Dashboard}
+\label{fig:cd-r3}
+\end{figure}
+
+% ---------- 5.6 dashboard / KPIs ----------
+\section{Smart Dashboard \& KPIs}
+
+The smart dashboard, accessible to administrators and the super-administrator, exposes the platform's pulse in real time.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=14cm, height=6cm,
+  ybar,
+  bar width=14pt,
+  ylabel={Reservations},
+  symbolic x coords={Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec},
+  xtick=data,
+  ymin=0, ymax=120,
+  enlarge x limits=0.05,
+  nodes near coords,
+  nodes near coords style={font=\scriptsize\bfseries, color=primary},
+  every axis label/.append style={font=\small},
+  tick label style={font=\small},
+  grid=both,
+  major grid style={color=gray!25},
+  minor grid style={color=gray!10}
+]
+  \addplot[fill=primary, draw=primary] coordinates {
+    (Jan,32) (Feb,41) (Mar,55) (Apr,63) (May,72) (Jun,68)
+    (Jul,49) (Aug,38) (Sep,84) (Oct,95) (Nov,102) (Dec,88)
+  };
+\end{axis}
+\end{tikzpicture}
+\caption{Monthly reservations over a representative year (sample data)}
+\label{fig:kpi-month}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=5.5cm,
+  xbar,
+  bar width=12pt,
+  xlabel={Reservations},
+  symbolic y coords={Web Dev, Data Science, Networks, DevOps, Soft Skills},
+  ytick=data,
+  xmin=0, xmax=140,
+  nodes near coords,
+  nodes near coords style={font=\small\bfseries, color=primary},
+  enlarge y limits=0.18
+]
+  \addplot[fill=secondary, draw=secondary] coordinates {
+    (118, Web Dev) (96, Data Science) (74, Networks) (62, DevOps) (45, Soft Skills)
+  };
+\end{axis}
+\end{tikzpicture}
+\caption{Top 5 trainings by reservations (sample data)}
+\label{fig:kpi-top5}
+\end{figure}
+
+\subsection{Chatbot}
+
+The integrated chatbot answers natural-language queries from the admin (e.g. \textit{"how many reservations this week?"}, \textit{"top 3 trainings"}) by routing them to the dashboard service. It enables a faster decision loop without writing any SQL or navigating multiple pages.
+
+% ---------- 5.7 ----------
+\section{Achieved Increment}
+
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item Full reservation workflow with pending / accepted / refused statuses.
+  \item Real-time notifications (in-app + e-mail) for users, admins and super-admin.
+  \item Smart dashboard with KPIs, charts and quick filters.
+  \item Conversational chatbot that exposes the dashboard in natural language.
+  \item Excel/PDF export and Excel import for users and reservations.
+\end{itemize}
+
+\section{Conclusion}
+
+With this third release, the ADVANCIA platform reaches its target perimeter. The next chapter steps back from features and looks at the \textit{realization} : the technical environment, the architecture and the most representative interfaces of the final product.

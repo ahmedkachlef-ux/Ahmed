@@ -1,0 +1,221 @@
+% =============================================================
+%  CHAPTER 3 - RELEASE 1 : AUTHENTICATION & USER MANAGEMENT
+% =============================================================
+
+\chapteroverview{Release 1 : Authentication \& User Management}{
+  \item Introduction
+  \item Sprint Backlog
+  \item Refined Use Cases
+  \item Sequence Diagrams
+  \item Class Diagram of the Module
+  \item Achieved Increment
+  \item Conclusion
+}
+
+\section{Introduction}
+
+The first release lays the security foundations of the platform. It delivers everything that revolves around \textit{identity} : registration, secure authentication, profile management and the personal user dashboard. Without this layer, no other module can be safely built on top.
+
+% ---------- 3.2 Sprint backlog ----------
+\section{Sprint Backlog}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}c|X|c|c|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} ID} & \textbf{\color{white} Task} & \textbf{\color{white} Sprint} & \textbf{\color{white} Status}\\
+\hline
+T1 & Database design (users, roles, sessions) & S1 & \checkmark \\\hline
+T2 & Sign-up form with field validation & S1 & \checkmark \\\hline
+T3 & Login with JWT \& password hashing & S1 & \checkmark \\\hline
+T4 & Forgot / reset password & S1 & \checkmark \\\hline
+T5 & User profile : photo \& avatar upload & S2 & \checkmark \\\hline
+T6 & Change password from profile & S2 & \checkmark \\\hline
+T7 & Personal dashboard widgets & S2 & \checkmark \\\hline
+T8 & Role-based access middleware & S2 & \checkmark \\\hline
+\end{tabularx}
+\caption{Sprint backlog -- Release 1}
+\label{tab:sb1}
+\end{table}
+
+% ---------- 3.3 Use cases ----------
+\section{Refined Use Cases}
+
+\subsection{Detailed use case : \textit{Sign-up}}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}p{3.5cm}|X|}
+\hline
+\textbf{Title}        & Sign-up \\\hline
+\textbf{Actor}        & User \\\hline
+\textbf{Goal}         & Create a personal account on the platform. \\\hline
+\textbf{Pre-condition}& The user is not yet registered. \\\hline
+\textbf{Main scenario}& 1. The user opens the sign-up page. \newline
+                        2. The system displays the form. \newline
+                        3. The user fills in the required fields. \newline
+                        4. The system validates the data. \newline
+                        5. The system creates the account and sends a confirmation. \\\hline
+\textbf{Alternative}  & 4.a If the e-mail already exists, the system displays an error. \\\hline
+\textbf{Post-condition}& The account is created and ready to be activated. \\\hline
+\end{tabularx}
+\caption{Detailed use case : Sign-up}
+\label{tab:uc-signup}
+\end{table}
+
+\subsection{Use case diagram of Release 1}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  uc/.style={ellipse, draw=primary, fill=softblue, minimum width=2.6cm, align=center, inner sep=2pt}
+]
+  \draw[draw=primary, thick, rounded corners=8pt] (0,-3.5) rectangle (8,3.5);
+  \node[font=\bfseries\color{primary}] at (4,3.1) {Authentication \& User Module};
+
+  \node[uc] (su) at (4,2.3) {Sign-up};
+  \node[uc] (lo) at (4,1.3) {Login};
+  \node[uc] (fp) at (4,0.3) {Forgot password};
+  \node[uc] (mp) at (4,-0.7) {Manage profile};
+  \node[uc] (cp) at (4,-1.7) {Change password};
+  \node[uc] (db) at (4,-2.7) {View dashboard};
+
+  \node[align=center] (user) at (-2,0)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\\textbf{User}};
+
+  \draw (user) -- (su);
+  \draw (user) -- (lo);
+  \draw (user) -- (fp);
+  \draw (user) -- (mp);
+  \draw (user) -- (cp);
+  \draw (user) -- (db);
+\end{tikzpicture}
+\caption{Use case diagram -- Release 1}
+\label{fig:uc-r1}
+\end{figure}
+
+% ---------- 3.4 Sequence diagrams ----------
+\section{Sequence Diagrams}
+
+\subsection{Sequence : Login}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  lifeline/.style={dashed, color=primary},
+  msg/.style={->, thick, color=primary},
+  ret/.style={->, thick, dashed, color=secondary},
+  actor/.style={rectangle, draw=primary, fill=softblue, minimum width=1.8cm, minimum height=0.7cm}
+]
+  \node[actor] (u)  at (0,0)  {User};
+  \node[actor] (ui) at (3,0)  {UI};
+  \node[actor] (api)at (6,0)  {API};
+  \node[actor] (db) at (9,0)  {DB};
+
+  \foreach \n in {u,ui,api,db} \draw[lifeline] (\n.south) -- ++(0,-7);
+
+  \draw[msg] (0,-1)  -- node[above,font=\scriptsize]{enter credentials} (3,-1);
+  \draw[msg] (3,-2)  -- node[above,font=\scriptsize]{POST /login} (6,-2);
+  \draw[msg] (6,-3)  -- node[above,font=\scriptsize]{SELECT user} (9,-3);
+  \draw[ret] (9,-4)  -- node[above,font=\scriptsize]{user data} (6,-4);
+  \draw[ret] (6,-5)  -- node[above,font=\scriptsize]{200 + JWT token} (3,-5);
+  \draw[ret] (3,-6)  -- node[above,font=\scriptsize]{redirect dashboard} (0,-6);
+\end{tikzpicture}
+\caption{Sequence diagram of the login process}
+\label{fig:sd-login}
+\end{figure}
+
+% ---------- 3.5 Class diagram ----------
+\section{Class Diagram of the Module}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  class/.style={rectangle split, rectangle split parts=3, rectangle split part fill={primary, white, white},
+                draw=primary, text=white, rectangle split draw splits=true, align=left, inner sep=4pt}
+]
+  \node[class] (user) at (0,0) {%
+    \nodepart{one}\bfseries User
+    \nodepart[text=black]{two}
+      - id : int\\
+      - email : string\\
+      - password : string\\
+      - firstName : string\\
+      - lastName : string\\
+      - photo : string\\
+      - avatar : string
+    \nodepart[text=black]{three}
+      + register()\\
+      + login()\\
+      + updateProfile()\\
+      + changePassword()
+  };
+
+  \node[class, right=2.5cm of user] (role) {%
+    \nodepart{one}\bfseries Role
+    \nodepart[text=black]{two}
+      - id : int\\
+      - name : string\\
+      - permissions : json
+    \nodepart[text=black]{three}
+      + has(perm)
+  };
+
+  \node[class, below=1.5cm of user] (session) {%
+    \nodepart{one}\bfseries Session
+    \nodepart[text=black]{two}
+      - id : int\\
+      - token : string\\
+      - createdAt : date\\
+      - expiresAt : date
+    \nodepart[text=black]{three}
+      + isValid()
+  };
+
+  \draw[->, thick, color=primary] (user) -- node[above,font=\scriptsize]{1..*} (role);
+  \draw[->, thick, color=primary] (user) -- node[right,font=\scriptsize]{1..*} (session);
+\end{tikzpicture}
+\caption{Class diagram -- Authentication module}
+\label{fig:cd-r1}
+\end{figure}
+
+% ---------- 3.6 Achieved increment ----------
+\section{Achieved Increment}
+
+At the end of Release 1, the platform delivers :
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item A complete sign-up / login system based on JWT.
+  \item Profile management with photo and avatar upload.
+  \item Password reset and change.
+  \item A first version of the personal dashboard for the user.
+  \item A role-based middleware ready to be reused by the next releases.
+\end{itemize}
+
+\paragraph{Indicative interfaces.}
+The figure below positions, schematically, the screens delivered at the end of this release.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  scr/.style={rectangle, draw=primary, fill=white, rounded corners=4pt,
+              minimum width=3.2cm, minimum height=2.0cm, align=center, font=\small\bfseries\color{primary}}
+]
+  \node[scr] (a) at (0,0) {Sign-up\\screen};
+  \node[scr] (b) at (3.6,0) {Login\\screen};
+  \node[scr] (c) at (7.2,0) {Profile\\screen};
+  \node[scr] (d) at (10.8,0) {User\\dashboard};
+\end{tikzpicture}
+\caption{Screens delivered at the end of Release 1}
+\label{fig:r1-screens}
+\end{figure}
+
+\section{Conclusion}
+
+This first release has stabilized a robust security and identity layer. The next chapter builds on top of it to offer the functional heart of the platform : the training catalog and the course-management module.

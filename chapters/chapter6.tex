@@ -1,0 +1,341 @@
+% =============================================================
+%  CHAPTER 6 - REALIZATION
+% =============================================================
+
+\chapteroverview{Realization}{
+  \item Introduction
+  \item Hardware Environment
+  \item Software Environment
+  \item Adopted Architecture
+  \item Database Schema
+  \item Project Statistics
+  \item Representative Interfaces
+  \item Tests and Validation
+  \item Conclusion
+}
+
+\section{Introduction}
+
+After describing \textit{what} the platform does, this last chapter explains \textit{how} it has been built. We present the hardware and software environments, the adopted architecture, the database schema, a few representative interfaces and the validation strategy that supports the quality of the final product.
+
+% ---------- 6.2 hardware ----------
+\section{Hardware Environment}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Component} & \textbf{\color{white} Specification}\\
+\hline
+Processor & Intel Core i5 / i7 (10th generation or higher) \\\hline
+RAM       & 8 -- 16 GB DDR4 \\\hline
+Storage   & 256 -- 512 GB SSD \\\hline
+Display   & 14" -- 15.6" Full HD \\\hline
+Network   & Wi-Fi 5 / Wi-Fi 6, Ethernet \\\hline
+\end{tabularx}
+\caption{Hardware environment used during development}
+\label{tab:hw}
+\end{table}
+
+% ---------- 6.3 software ----------
+\section{Software Environment}
+
+\subsection{Languages and frameworks}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  techbox/.style={rectangle, draw=primary, fill=softblue, rounded corners=4pt,
+                  minimum width=2.5cm, minimum height=0.9cm, align=center}
+]
+  \node[techbox] (a) at (0,0)   {HTML5};
+  \node[techbox] (b) at (3,0)   {CSS3};
+  \node[techbox] (c) at (6,0)   {JavaScript};
+  \node[techbox] (d) at (9,0)   {React.js};
+  \node[techbox] (e) at (0,-1.5){Node.js};
+  \node[techbox] (f) at (3,-1.5){Express.js};
+  \node[techbox] (g) at (6,-1.5){MongoDB};
+  \node[techbox] (h) at (9,-1.5){JWT};
+  \node[techbox] (i) at (0,-3)  {Tailwind};
+  \node[techbox] (j) at (3,-3)  {Chart.js};
+  \node[techbox] (k) at (6,-3)  {Multer};
+  \node[techbox] (l) at (9,-3)  {Nodemailer};
+\end{tikzpicture}
+\caption{Technical stack of the ADVANCIA platform}
+\label{fig:stack}
+\end{figure}
+
+\subsection{Tools}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Tool} & \textbf{\color{white} Usage}\\
+\hline
+Visual Studio Code & Main IDE for front-end and back-end development. \\\hline
+Git \& GitHub      & Source-code management and collaboration. \\\hline
+Postman            & Manual testing of the REST API. \\\hline
+Figma              & UI/UX design and prototyping. \\\hline
+Draw.io / StarUML  & UML modeling. \\\hline
+Trello / Jira      & Sprint and backlog tracking. \\\hline
+MongoDB Compass    & Database visualization. \\\hline
+\LaTeX\ (Overleaf) & Writing of the present dissertation. \\\hline
+\end{tabularx}
+\caption{Tools used during the project}
+\label{tab:tools}
+\end{table}
+
+% ---------- 6.4 architecture ----------
+\section{Adopted Architecture}
+
+The platform follows a classical three-tier architecture, with a clear separation between the presentation layer (React SPA), the business layer (Express REST API) and the data layer (MongoDB).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  layer/.style={rectangle, draw=primary, fill=softblue, rounded corners=6pt,
+                minimum width=12cm, minimum height=1.6cm, align=center},
+  client/.style={rectangle, draw=primary, fill=white, rounded corners=4pt,
+                 minimum width=2.5cm, minimum height=0.9cm, align=center},
+  arr/.style={->, thick, color=primary}
+]
+  \node[layer] (l1) at (0,4) {\textbf{Presentation layer}\\React SPA -- Tailwind UI -- Chart.js};
+  \node[layer] (l2) at (0,2) {\textbf{Business layer}\\Express REST API -- JWT -- Validation -- Mailer};
+  \node[layer] (l3) at (0,0) {\textbf{Data layer}\\MongoDB collections + GridFS for files};
+
+  \draw[arr] (l1) -- node[right]{HTTPS / JSON} (l2);
+  \draw[arr] (l2) -- node[right]{Mongoose ORM}  (l3);
+
+  \node[client, left=0.4cm of l1] (cl) {\faDesktop\ Browser};
+  \draw[arr] (cl) -- (l1);
+\end{tikzpicture}
+\caption{Three-tier architecture of the ADVANCIA platform}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Deployment view}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  srv/.style={rectangle, draw=primary, fill=softblue, rounded corners=4pt,
+              minimum width=3cm, minimum height=1cm, align=center},
+  arr/.style={->, thick, color=primary}
+]
+  \node[srv] (browser) at (0,0)   {\faDesktop\ Browser};
+  \node[srv] (front)   at (4,0)   {\faServer\ Front Server\\(Vite / Nginx)};
+  \node[srv] (api)     at (8,0)   {\faCogs\ API Server\\(Node + Express)};
+  \node[srv] (db)      at (12,0)  {\faDatabase\ MongoDB};
+  \node[srv] (mail)    at (8,-1.8){\faEnvelope\ SMTP / Mail};
+
+  \draw[arr] (browser) -- (front);
+  \draw[arr] (front)   -- (api);
+  \draw[arr] (api)     -- (db);
+  \draw[arr] (api)     -- (mail);
+\end{tikzpicture}
+\caption{Simplified deployment diagram}
+\label{fig:deploy}
+\end{figure}
+
+% ---------- 6.5 DB ----------
+\section{Database Schema}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  ent/.style={rectangle split, rectangle split parts=2,
+              rectangle split part fill={primary, white},
+              draw=primary, text=white, rectangle split draw splits=true, align=left, inner sep=4pt}
+]
+  \node[ent] (u) at (0,0) {%
+    \nodepart{one}\bfseries User
+    \nodepart[text=black]{two}
+      \underline{\_id}\\ email\\ password\\ firstName\\ lastName\\ photo\\ avatar\\ role
+  };
+  \node[ent, right=2cm of u] (t) {%
+    \nodepart{one}\bfseries Training
+    \nodepart[text=black]{two}
+      \underline{\_id}\\ title\\ description\\ duration\\ price\\ level\\ categoryId
+  };
+  \node[ent, right=2cm of t] (c) {%
+    \nodepart{one}\bfseries Course
+    \nodepart[text=black]{two}
+      \underline{\_id}\\ trainingId\\ title\\ content\\ resources\\ order
+  };
+  \node[ent, below=2cm of u] (r) {%
+    \nodepart{one}\bfseries Reservation
+    \nodepart[text=black]{two}
+      \underline{\_id}\\ userId\\ trainingId\\ status\\ createdAt
+  };
+  \node[ent, below=2cm of t] (n) {%
+    \nodepart{one}\bfseries Notification
+    \nodepart[text=black]{two}
+      \underline{\_id}\\ recipientId\\ type\\ message\\ read
+  };
+  \node[ent, below=2cm of c] (cat) {%
+    \nodepart{one}\bfseries Category
+    \nodepart[text=black]{two}
+      \underline{\_id}\\ name\\ description
+  };
+
+  \draw[->, thick, primary] (u)   -- node[above,font=\scriptsize]{1..*}(r);
+  \draw[->, thick, primary] (t)   -- node[above,font=\scriptsize]{1..*}(r);
+  \draw[->, thick, primary] (t)   -- node[above,font=\scriptsize]{1..*}(c);
+  \draw[->, thick, primary] (cat) -- node[right,font=\scriptsize]{1..*}(t);
+  \draw[->, thick, primary] (u)   -- node[above,font=\scriptsize]{*}(n);
+\end{tikzpicture}}
+\caption{Entity-relationship schema of the ADVANCIA database}
+\label{fig:erd}
+\end{figure}
+
+% ---------- 6.6 stats ----------
+\section{Project Statistics}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Indicator} & \textbf{\color{white} Value}\\
+\hline
+Number of user stories      & 18 \\\hline
+Number of releases          & 3 \\\hline
+Number of sprints           & 6 \\\hline
+Total story points          & 95 \\\hline
+Front-end pages             & $\sim$ 22 \\\hline
+REST API endpoints          & $\sim$ 45 \\\hline
+Database collections        & 7 \\\hline
+Manual test cases           & $\sim$ 60 \\\hline
+\end{tabularx}
+\caption{Quantitative indicators of the project}
+\label{tab:stats}
+\end{table}
+
+\subsection{Code distribution}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=5.5cm,
+  ybar,
+  bar width=22pt,
+  ylabel={Lines of code (\%)},
+  symbolic x coords={Front-end, Back-end, Database, Tests, Config},
+  xtick=data,
+  ymin=0, ymax=55,
+  nodes near coords,
+  nodes near coords style={font=\small\bfseries, color=primary},
+  enlarge x limits=0.15,
+  every axis label/.append style={font=\small}
+]
+  \addplot[fill=primary,    draw=primary]    coordinates {(Front-end,42)};
+  \addplot[fill=secondary,  draw=secondary]  coordinates {(Back-end,38)};
+  \addplot[fill=accent,     draw=accent]     coordinates {(Database,7)};
+  \addplot[fill=success,    draw=success]    coordinates {(Tests,9)};
+  \addplot[fill=danger,     draw=danger]     coordinates {(Config,4)};
+\end{axis}
+\end{tikzpicture}
+\caption{Approximate distribution of the code base}
+\label{fig:codedist}
+\end{figure}
+
+\subsection{Sprint velocity}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=5.5cm,
+  ymajorgrids, grid style=dashed,
+  ylabel={Story points completed},
+  symbolic x coords={S1, S2, S3, S4, S5, S6},
+  xtick=data,
+  ymin=0, ymax=22,
+  mark size=2.5pt,
+  nodes near coords,
+  nodes near coords style={font=\small\bfseries, color=primary}
+]
+  \addplot[mark=*, color=primary, thick] coordinates {
+    (S1,8) (S2,12) (S3,14) (S4,18) (S5,17) (S6,20)
+  };
+\end{axis}
+\end{tikzpicture}
+\caption{Velocity per sprint (story points completed)}
+\label{fig:velocity}
+\end{figure}
+
+% ---------- 6.7 screens ----------
+\section{Representative Interfaces}
+
+This section illustrates the main interfaces produced. Real screenshots will replace the placeholders in the final printed version of the dissertation.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  scr/.style={rectangle, draw=primary, fill=softblue, rounded corners=6pt,
+              minimum width=5.5cm, minimum height=3cm, align=center,
+              font=\small\bfseries\color{primary}}
+]
+  \node[scr] (a) at (0,0)   {Sign-up / Login\\page};
+  \node[scr] (b) at (6.2,0) {User\\dashboard};
+  \node[scr] (c) at (0,-3.5){Catalog of\\trainings};
+  \node[scr] (d) at (6.2,-3.5){Reservation\\workflow};
+  \node[scr] (e) at (0,-7)  {Smart\\admin dashboard};
+  \node[scr] (f) at (6.2,-7){Chatbot\\assistant};
+\end{tikzpicture}
+\caption{Mosaic of the main interfaces of the platform}
+\label{fig:mosaic}
+\end{figure}
+
+% ---------- 6.8 tests ----------
+\section{Tests and Validation}
+
+A pyramid testing strategy was followed during the project : unit tests at the bottom (most numerous, fastest), integration tests in the middle, and end-to-end tests at the top (less numerous, slower but representative of the user journey).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \fill[primary]   (-3,0) -- (3,0)  -- (2,2) -- (-2,2) -- cycle;
+  \fill[secondary] (-2,2) -- (2,2)  -- (1,4) -- (-1,4) -- cycle;
+  \fill[accent]    (-1,4) -- (1,4)  -- (0,5.5) -- cycle;
+
+  \node[white, font=\bfseries] at (0,1)   {Unit tests};
+  \node[white, font=\bfseries] at (0,3)   {Integration tests};
+  \node[white, font=\bfseries] at (0,4.7) {E2E tests};
+\end{tikzpicture}
+\caption{Testing pyramid adopted}
+\label{fig:pyramid}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|c|c|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Test} & \textbf{\color{white} Cases} & \textbf{\color{white} Pass rate} & \textbf{\color{white} Coverage}\\
+\hline
+Unit (services)      & 38 & 100 \% & Auth, reservation, dashboard \\\hline
+Integration (API)    & 16 & 100 \% & Critical endpoints \\\hline
+E2E (UI)             & 8  & 100 \% & Sign-up, reserve, accept, export \\\hline
+\end{tabularx}
+\caption{Synthesis of the validation tests}
+\label{tab:tests}
+\end{table}
+
+\section{Conclusion}
+
+This realization chapter has materialized the project on a technical level : a modern stack, a clean three-tier architecture, a documented database, measurable indicators and a structured testing strategy. The platform is now ready for delivery and for the perspectives of evolution detailed in the general conclusion.

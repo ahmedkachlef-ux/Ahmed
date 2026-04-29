@@ -31,9 +31,9 @@
 % compiles before the real logos are dropped into images/logos/.
 %
 \newcommand{\logoplate}[2]{%
-  \begin{tikzpicture}[baseline=(L.center)]
+  \begin{tikzpicture}
     \node[fill=white, draw=white, minimum width=3cm, minimum height=3cm,
-          inner sep=2pt] (L)
+          inner sep=2pt]
       {\IfFileExists{#1}{%
          \includegraphics[height=2.8cm,keepaspectratio]{#1}%
        }{%

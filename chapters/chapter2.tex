@@ -1,0 +1,330 @@
+% =============================================================
+%  CHAPTER 2 - ANALYSIS & PROJECT PLANNING
+% =============================================================
+
+\chapteroverview{Analysis and Project Planning}{
+  \item Introduction
+  \item Identification of the Actors
+  \item Functional Requirements
+  \item Non-Functional Requirements
+  \item Global Use Case Diagram
+  \item Product Backlog
+  \item Releases and Sprints
+  \item Provisional Schedule (Gantt)
+  \item Conclusion
+}
+
+\section{Introduction}
+
+After framing the project, this chapter focuses on understanding \textit{what} the ADVANCIA platform must do and \textit{how} the work is organized. We start by identifying every actor of the system, we then formalize the functional and non-functional requirements, we draw the global use case diagram and finally we transform the whole into a structured plan of releases, sprints and a Gantt schedule.
+
+% ---------- 2.2 Actors ----------
+\section{Identification of the Actors}
+
+The ADVANCIA platform is a multi-actor system. Four main actors interact with the system, each one with a clearly defined scope of responsibilities.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Actor} & \textbf{\color{white} Role and responsibilities}\\
+\hline
+\textbf{User} &
+Creates and manages his account, browses and reserves trainings, manages his profile (photo, avatar, password) and consults his personal dashboard. \\\hline
+\textbf{Trainer} &
+Handles the trainings he is responsible for, follows enrolled users, animates sessions and updates pedagogical content. \\\hline
+\textbf{Administrator} &
+Manages users, validates or refuses reservations, imports and exports data (Excel, PDF), exploits a smart dashboard and an integrated chatbot. \\\hline
+\textbf{Super-Administrator} &
+Has the highest level of authority : manages users, admins, trainers, trainings and courses, sends notifications and supervises the whole platform. \\\hline
+\end{tabularx}
+\caption{Actors of the ADVANCIA platform}
+\label{tab:actors}
+\end{table}
+
+% ---------- 2.3 Functional ----------
+\section{Functional Requirements}
+
+The functional requirements describe \textit{what} the system must offer. They are grouped by actor.
+
+\subsection{User}
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item Create an account and authenticate.
+  \item Manage the personal profile : photo, avatar, password, contact info.
+  \item Browse and search the catalog of trainings.
+  \item Reserve a training session.
+  \item Consult a simple personal dashboard with the essential indicators.
+  \item Receive notifications about reservations and account events.
+\end{itemize}
+
+\subsection{Trainer}
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item Authenticate and manage profile.
+  \item Consult the list of trainings and sessions assigned to him.
+  \item Track enrolled users.
+  \item Update pedagogical resources of his courses.
+\end{itemize}
+
+\subsection{Administrator}
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item Manage users (create, update, suspend, delete).
+  \item Import data (e.g. CSV/Excel of users) and export data in Excel or PDF.
+  \item Use the smart dashboard with KPIs and charts.
+  \item Use the integrated chatbot for assistance and quick queries.
+  \item Manage personal profile.
+\end{itemize}
+
+\subsection{Super-Administrator}
+\begin{itemize}[leftmargin=2em,itemsep=0.2em]
+  \item All capabilities of the Administrator.
+  \item Manage admins and trainers.
+  \item Manage trainings and courses (CRUD).
+  \item Accept or refuse reservations.
+  \item Send notifications to users or administrators.
+  \item Change password and supervise security policies.
+\end{itemize}
+
+% ---------- 2.4 Non functional ----------
+\section{Non-Functional Requirements}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Requirement} & \textbf{\color{white} Description}\\
+\hline
+Security & Authentication via JWT, password hashing, role-based access control, HTTPS. \\\hline
+Performance & Response time below 2 seconds for the main pages, smooth navigation. \\\hline
+Usability & Modern, clear and responsive UI accessible from desktop, tablet and mobile. \\\hline
+Reliability & Daily database backup and graceful error handling. \\\hline
+Scalability & Modular architecture allowing the addition of new modules without disruption. \\\hline
+Maintainability & Clean code, documented modules, version-controlled with Git. \\\hline
+Portability & Cross-browser compatibility (Chrome, Firefox, Edge). \\\hline
+\end{tabularx}
+\caption{Non-functional requirements}
+\label{tab:nonfunctional}
+\end{table}
+
+% ---------- 2.5 Use case diagram ----------
+\section{Global Use Case Diagram}
+
+The following diagram synthesizes the main use cases of the ADVANCIA platform and the relationships between actors and use cases.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  uc/.style={ellipse, draw=primary, fill=softblue, minimum width=3cm,
+             minimum height=0.7cm, align=center, inner sep=2pt},
+  actor/.style={align=center, font=\small\bfseries}
+]
+  % System boundary
+  \draw[draw=primary, thick, rounded corners=8pt] (-1,-7.5) rectangle (10,5);
+  \node[font=\bfseries\color{primary}] at (4.5,4.6) {ADVANCIA System};
+
+  % Use cases
+  \node[uc] (auth)   at (4.5, 4)  {Authenticate};
+  \node[uc] (regis)  at (1.0, 3)  {Register};
+  \node[uc] (profile)at (4.5, 3)  {Manage profile};
+  \node[uc] (browse) at (1.0, 2)  {Browse trainings};
+  \node[uc] (reserve)at (4.5, 2)  {Reserve training};
+  \node[uc] (dash)   at (8.0, 3)  {View dashboard};
+  \node[uc] (course) at (8.0, 2)  {Manage courses};
+  \node[uc] (mu)     at (1.0, 0.5){Manage users};
+  \node[uc] (ma)     at (4.5, 0.5){Manage admins};
+  \node[uc] (mt)     at (8.0, 0.5){Manage trainings};
+  \node[uc] (accept) at (1.0,-1)  {Accept / refuse\\reservation};
+  \node[uc] (notif)  at (4.5,-1)  {Send notifications};
+  \node[uc] (chat)   at (8.0,-1)  {Use chatbot};
+  \node[uc] (imp)    at (1.0,-2.5){Import data};
+  \node[uc] (exp)    at (4.5,-2.5){Export Excel/PDF};
+  \node[uc] (track)  at (8.0,-2.5){Track learners};
+
+  % Actors (left: User, Trainer)
+  \node[actor] (user) at (-3,3)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\User};
+  \node[actor] (trainer) at (-3,0)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\Trainer};
+
+  % Actors (right: Admin, Super-Admin)
+  \node[actor] (admin) at (12,3)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\Admin};
+  \node[actor] (super) at (12,-1)
+       {\tikz\draw[primary, thick] (0,0) circle (0.18) (0,-0.18) -- (0,-0.7)
+         (-0.4,-0.4) -- (0.4,-0.4) (-0.25,-1.05) -- (0,-0.7) -- (0.25,-1.05);\\Super-Admin};
+
+  % Links - User
+  \draw (user) -- (auth);
+  \draw (user) -- (regis);
+  \draw (user) -- (profile);
+  \draw (user) -- (browse);
+  \draw (user) -- (reserve);
+  \draw (user) -- (dash);
+
+  % Links - Trainer
+  \draw (trainer) -- (auth);
+  \draw (trainer) -- (course);
+  \draw (trainer) -- (track);
+
+  % Links - Admin
+  \draw (admin) -- (auth);
+  \draw (admin) -- (mu);
+  \draw (admin) -- (dash);
+  \draw (admin) -- (chat);
+  \draw (admin) -- (imp);
+  \draw (admin) -- (exp);
+
+  % Links - Super-Admin
+  \draw (super) -- (mu);
+  \draw (super) -- (ma);
+  \draw (super) -- (mt);
+  \draw (super) -- (accept);
+  \draw (super) -- (notif);
+  \draw (super) -- (chat);
+\end{tikzpicture}}
+\caption{Global use case diagram of the ADVANCIA platform}
+\label{fig:globaluc}
+\end{figure}
+
+% ---------- 2.6 Product Backlog ----------
+\section{Product Backlog}
+
+The product backlog gathers, in priority order, every user story to be developed. The story points (SP) follow a Fibonacci scale.
+
+\begin{longtable}{|>{\columncolor{softblue}}p{0.9cm}|p{8.5cm}|p{2.3cm}|p{1.1cm}|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} ID} & \textbf{\color{white} User Story} & \textbf{\color{white} Actor} & \textbf{\color{white} SP}\\
+\hline
+\endfirsthead
+\hline
+\rowcolor{primary}
+\textbf{\color{white} ID} & \textbf{\color{white} User Story} & \textbf{\color{white} Actor} & \textbf{\color{white} SP}\\
+\hline
+\endhead
+US01 & As a user, I want to create an account so I can access the platform. & User & 3 \\\hline
+US02 & As a user, I want to authenticate securely. & User & 3 \\\hline
+US03 & As a user, I want to manage my profile (photo, avatar, password). & User & 5 \\\hline
+US04 & As a user, I want a personal dashboard. & User & 5 \\\hline
+US05 & As a user, I want to browse and search trainings. & User & 5 \\\hline
+US06 & As a user, I want to reserve a training session. & User & 5 \\\hline
+US07 & As a trainer, I want to consult my assigned trainings. & Trainer & 3 \\\hline
+US08 & As a trainer, I want to track my enrolled learners. & Trainer & 5 \\\hline
+US09 & As an admin, I want to manage users (CRUD). & Admin & 8 \\\hline
+US10 & As an admin, I want to import data from Excel. & Admin & 5 \\\hline
+US11 & As an admin, I want to export data to Excel and PDF. & Admin & 5 \\\hline
+US12 & As an admin, I want a smart dashboard. & Admin & 8 \\\hline
+US13 & As an admin, I want an integrated chatbot. & Admin & 8 \\\hline
+US14 & As a super-admin, I want to manage admins and trainers. & Super-Admin & 8 \\\hline
+US15 & As a super-admin, I want to manage trainings and courses. & Super-Admin & 8 \\\hline
+US16 & As a super-admin, I want to accept or refuse reservations. & Super-Admin & 5 \\\hline
+US17 & As a super-admin, I want to send notifications. & Super-Admin & 5 \\\hline
+US18 & As any actor, I want a responsive and modern UI. & All & 5 \\\hline
+\caption{Product backlog of the ADVANCIA platform}
+\label{tab:backlog}
+\end{longtable}
+
+% ---------- 2.7 Releases and sprints ----------
+\section{Releases and Sprints}
+
+The product backlog has been broken down into \textbf{three releases}, each one delivering a tangible set of value at the end of its lifecycle.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|l|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Release} & \textbf{\color{white} Scope} & \textbf{\color{white} Sprints}\\
+\hline
+Release 1 & Authentication \& User management (US01--US04, US18) & S1, S2 \\\hline
+Release 2 & Training catalog \& Course management (US05, US07, US15) & S3, S4 \\\hline
+Release 3 & Reservation, Notifications, Dashboard \& Chatbot (US06, US08--US14, US16, US17) & S5, S6 \\\hline
+\end{tabularx}
+\caption{Decomposition into releases and sprints}
+\label{tab:releases}
+\end{table}
+
+\subsection{Distribution of effort}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=5.5cm,
+  ybar stacked,
+  bar width=22pt,
+  ylabel={Story points},
+  symbolic x coords={Release 1, Release 2, Release 3},
+  xtick=data,
+  ymin=0, ymax=70,
+  legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1, draw=none},
+  enlarge x limits=0.35,
+  nodes near coords style={font=\small\color{white}\bfseries},
+  every axis label/.append style={font=\small},
+  tick label style={font=\small}
+]
+  \addplot[fill=primary]    coordinates {(Release 1,16) (Release 2,16) (Release 3,21)};
+  \addplot[fill=secondary]  coordinates {(Release 1,5)  (Release 2,8)  (Release 3,13)};
+  \addplot[fill=accent]     coordinates {(Release 1,3)  (Release 2,5)  (Release 3,8) };
+  \legend{Core features, Advanced features, Polishing}
+\end{axis}
+\end{tikzpicture}
+\caption{Distribution of story points across releases}
+\label{fig:effort}
+\end{figure}
+
+% ---------- 2.8 Gantt ----------
+\section{Provisional Schedule (Gantt Chart)}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{ganttchart}[
+  hgrid, vgrid,
+  bar/.append style={fill=primary, draw=primary},
+  bar incomplete/.append style={fill=softblue, draw=primary},
+  group/.append style={fill=secondary, draw=secondary},
+  milestone/.append style={fill=accent, draw=accent},
+  bar height=0.6,
+  group label font=\bfseries\color{white},
+  bar label font=\small,
+  title label font=\bfseries\color{primary},
+  title height=1,
+  x unit=0.55cm,
+  y unit chart=0.55cm
+]{1}{20}
+  \gantttitle{ADVANCIA Project -- Provisional Planning}{20} \\
+  \gantttitlelist{1,...,20}{1} \\
+  \ganttgroup{Analysis \& Design}{1}{4} \\
+  \ganttbar{Requirements}{1}{2} \\
+  \ganttbar{UML modeling}{2}{4} \\
+  \ganttgroup{Release 1}{4}{8} \\
+  \ganttbar{Sprint 1 -- Auth}{4}{6} \\
+  \ganttbar{Sprint 2 -- User mgmt}{6}{8} \\
+  \ganttgroup{Release 2}{8}{13} \\
+  \ganttbar{Sprint 3 -- Catalog}{8}{10} \\
+  \ganttbar{Sprint 4 -- Courses}{11}{13} \\
+  \ganttgroup{Release 3}{13}{18} \\
+  \ganttbar{Sprint 5 -- Reservations}{13}{15} \\
+  \ganttbar{Sprint 6 -- Dashboard \& Chatbot}{16}{18} \\
+  \ganttgroup{Tests \& Documentation}{18}{20} \\
+  \ganttbar{Final tests}{18}{19} \\
+  \ganttbar{Documentation}{19}{20} \\
+  \ganttmilestone{Final delivery}{20}
+\end{ganttchart}}
+\caption{Gantt chart of the ADVANCIA project}
+\label{fig:gantt}
+\end{figure}
+
+\section{Conclusion}
+
+This second chapter has clarified the perimeter of the platform : its four actors, its functional and non-functional requirements, the global use cases, and the structuring of the work into three releases driven by a Gantt schedule. The next chapters will detail each release, sprint by sprint, until the final integrated solution.

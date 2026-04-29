@@ -1,0 +1,26 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.idx
+*.ind
+*.ilg
+*.nav
+*.snm
+*.vrb
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Keep main.pdf out — only the curated ADVANCIA-PFE.pdf is committed
+main.pdf

@@ -1,0 +1,211 @@
+% =============================================================
+%  END OF STUDIES PROJECT - MAIN FILE
+%  Authors : Istabrak BEN KHMAYS & Sayhi MAHDI
+%  Title   : Study and Development of a Smart Training Platform 'ADVANCIA'
+%  School  : ISET Siliana
+%  Year    : 2025 / 2026
+% =============================================================
+
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ---------- PACKAGES ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tocloft}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes.geometric,shapes.misc,shapes.symbols,shapes.multipart,arrows.meta,fit,calc,backgrounds,decorations.pathreplacing,patterns}
+\usepackage{pgfgantt}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{fontawesome5}
+\usepackage{setspace}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{eso-pic}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{makecell}
+
+% ---------- PAGE LAYOUT ----------
+\geometry{
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm
+}
+
+% ---------- COLORS ----------
+\definecolor{primary}{RGB}{25,55,109}
+\definecolor{secondary}{RGB}{60,90,160}
+\definecolor{accent}{RGB}{220,150,40}
+\definecolor{lightgray}{RGB}{240,240,240}
+\definecolor{softblue}{RGB}{220,232,250}
+\definecolor{success}{RGB}{40,140,90}
+\definecolor{danger}{RGB}{200,60,60}
+
+% ---------- LINE SPACING ----------
+\onehalfspacing
+
+% ---------- HYPERLINKS ----------
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+% ---------- HEADER / FOOTER ----------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\color{primary}\nouppercase{\leftmark}}
+\fancyhead[R]{\color{primary}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ---------- CHAPTER TITLE STYLE ----------
+\titleformat{\chapter}[block]{}{}{0pt}{}
+\titlespacing*{\chapter}{0pt}{0pt}{0pt}
+
+\titleformat{name=\chapter,numberless}[display]
+  {\normalfont\huge\bfseries\color{primary}}
+  {}{20pt}{\Huge}
+\titlespacing*{name=\chapter,numberless}{0pt}{-30pt}{20pt}
+
+% ---------- SECTION TITLE STYLE ----------
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{primary}}
+  {\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{secondary}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{secondary}}
+  {\thesubsubsection}{0.6em}{}
+
+% ---------- LISTINGS STYLE ----------
+\lstdefinestyle{codestyle}{
+  backgroundcolor=\color{lightgray},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  captionpos=b,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{success}\itshape,
+  stringstyle=\color{accent},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  frame=single,
+  rulecolor=\color{secondary},
+  showstringspaces=false,
+  tabsize=2
+}
+\lstset{style=codestyle}
+
+% ---------- CUSTOM COMMAND : CHAPTER OVERVIEW PAGE ----------
+\newcommand{\chapteroverview}[2]{%
+  \cleardoublepage
+  \refstepcounter{chapter}%
+  \addcontentsline{toc}{chapter}{\protect\numberline{\thechapter}#1}%
+  \thispagestyle{empty}%
+  \markboth{}{}%
+  \vspace*{2cm}
+  \begin{center}
+    \begin{tikzpicture}
+      \draw[line width=1pt, color=primary] (0,0) -- (12,0);
+      \draw[line width=1pt, color=primary] (0,-0.2) -- (0,0);
+      \draw[line width=1pt, color=primary] (12,-0.2) -- (12,0);
+    \end{tikzpicture}\\[0.4cm]
+    {\LARGE\bfseries\color{primary} Chapter \thechapter \quad #1}\\[0.4cm]
+    \begin{tikzpicture}
+      \draw[line width=1pt, color=primary] (0,0) -- (12,0);
+      \draw[line width=1pt, color=primary] (0,0.2) -- (0,0);
+      \draw[line width=1pt, color=primary] (12,0.2) -- (12,0);
+    \end{tikzpicture}
+    \vspace{2.5cm}
+
+    \begin{minipage}{0.7\textwidth}
+      \large
+      \begin{enumerate}[leftmargin=2cm,itemsep=0.6em]
+        #2
+      \end{enumerate}
+    \end{minipage}
+  \end{center}
+  \newpage
+  \markboth{Chapter \thechapter\ -- #1}{}%
+}
+
+% =============================================================
+\begin{document}
+
+% ---------- FRONT MATTER : NO HEADER / FOOTER ----------
+\pagestyle{empty}
+
+% ---------- COVER PAGE ----------
+\input{chapters/cover}
+
+% ---------- DEDICATIONS ----------
+\input{chapters/dedication_mahdi}
+\input{chapters/dedication_istabrak}
+
+% ---------- ACKNOWLEDGEMENTS ----------
+\input{chapters/acknowledgements}
+
+% ---------- FRONT MATTER : RESTORE HEADER ----------
+\pagestyle{fancy}
+
+% ---------- FRONT MATTER (roman numerals) ----------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\renewcommand{\contentsname}{\hfill\Huge\bfseries\color{primary} Table of Contents \hfill}
+\tableofcontents
+\clearpage
+
+\renewcommand{\listfigurename}{\hfill\Huge\bfseries\color{primary} List of Figures \hfill}
+\listoffigures
+\clearpage
+
+\renewcommand{\listtablename}{\hfill\Huge\bfseries\color{primary} List of Tables \hfill}
+\listoftables
+\clearpage
+
+\input{chapters/acronyms}
+
+% ---------- GENERAL INTRODUCTION ----------
+\input{chapters/general_introduction}
+
+% ---------- MAIN CHAPTERS (arabic numerals) ----------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{chapters/chapter1}     % Project Framework Presentation
+\input{chapters/chapter2}     % Analysis & Project Planning
+\input{chapters/chapter3}     % Release 1 - Authentication & User Management
+\input{chapters/chapter4}     % Release 2 - Training Catalog & Course Management
+\input{chapters/chapter5}     % Release 3 - Reservation, Notifications & Dashboard
+\input{chapters/chapter6}     % Realisation (technical environment & screens)
+
+% ---------- GENERAL CONCLUSION ----------
+\input{chapters/general_conclusion}
+
+% ---------- NETOGRAPHY ----------
+\input{chapters/netography}
+
+\end{document}

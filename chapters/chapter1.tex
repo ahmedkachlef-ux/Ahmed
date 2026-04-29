@@ -1,0 +1,264 @@
+% =============================================================
+%  CHAPTER 1 - PROJECT FRAMEWORK PRESENTATION
+% =============================================================
+
+\chapteroverview{Project Framework Presentation}{
+  \item Introduction
+  \item Host Company Presentation
+  \item Project Context and Problem Statement
+  \item Study of the Existing Solutions
+  \item Proposed Solution
+  \item Adopted Methodology : Scrum
+  \item Conclusion
+}
+
+% ---------- 1.1 Introduction ----------
+\section{Introduction}
+
+This first chapter is dedicated to setting the general framework of our end-of-studies project. We begin by presenting the host company \textsc{ADVANCIA Training Center}, then we outline the context and the problem the project is meant to solve. After a critical study of the existing solutions, we describe our proposed platform and justify the choice of the agile \textit{Scrum} methodology that has guided every stage of our work.
+
+% ---------- 1.2 Host Company ----------
+\section{Host Company Presentation}
+
+\subsection{Identity}
+
+\textsc{ADVANCIA Training Center} is a Tunisian training organization specialized in continuous education and professional certification in the fields of computer science, networks, management and personal development. The center accompanies students, professionals and companies in their up-skilling journey through tailored programs delivered both \textit{on-site} and \textit{online}.
+
+\subsection{Information sheet}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|>{\columncolor{softblue}}p{4.5cm}|p{9cm}|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Field} & \textbf{\color{white} Description}\\
+\hline
+Name & ADVANCIA Training Center \\\hline
+Sector of activity & Professional training and certifications \\\hline
+Domains & IT, Networks, Management, Soft Skills \\\hline
+Target audience & Students, professionals, companies \\\hline
+Training modes & In-person, Online, Hybrid \\\hline
+Address & Tunis, Tunisia \\\hline
+Website & \url{https://www.advancia-tc.com} \\\hline
+\end{tabular}
+\caption{Identity sheet of ADVANCIA Training Center}
+\label{tab:company}
+\end{table}
+
+\subsection{Organizational chart}
+
+The figure below summarizes the simplified organizational structure of the host company.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=0.9cm and 0.6cm,
+  every node/.style={font=\small},
+  box/.style={rectangle, draw=primary, fill=softblue, rounded corners=4pt,
+              minimum width=3cm, minimum height=0.8cm, align=center},
+  topbox/.style={rectangle, draw=primary, fill=primary, text=white,
+                 rounded corners=4pt, minimum width=3.4cm, minimum height=0.9cm, align=center}
+]
+  \node[topbox] (dg) {General Direction};
+  \node[box, below=of dg] (admin) {Administration};
+  \node[box, left=of admin] (ped) {Pedagogical Service};
+  \node[box, right=of admin] (com) {Marketing \& Sales};
+  \node[box, below=of ped] (tr) {Trainers};
+  \node[box, below=of admin] (it) {IT Department};
+  \node[box, below=of com] (rh) {HR};
+
+  \draw[->, thick, color=primary] (dg) -- (admin);
+  \draw[->, thick, color=primary] (dg.south) -- ++(0,-0.3) -| (ped.north);
+  \draw[->, thick, color=primary] (dg.south) -- ++(0,-0.3) -| (com.north);
+  \draw[->, thick, color=primary] (ped) -- (tr);
+  \draw[->, thick, color=primary] (admin) -- (it);
+  \draw[->, thick, color=primary] (com) -- (rh);
+\end{tikzpicture}
+\caption{Organizational chart of ADVANCIA Training Center}
+\label{fig:orgchart}
+\end{figure}
+
+% ---------- 1.3 Project context ----------
+\section{Project Context and Problem Statement}
+
+\subsection{Context}
+
+This project takes place within the framework of an end-of-studies internship in computer science, in collaboration between \textbf{ISET Siliana} and \textbf{ADVANCIA Training Center}. It aims at modernizing the way the company handles its trainings and interacts with its users, by replacing manual or scattered processes with a centralized and intelligent web platform.
+
+\subsection{Problem statement}
+
+After studying the company's daily workflow, we identified several recurring difficulties that hinder both the user experience and the administrative efficiency :
+
+\begin{itemize}[leftmargin=2em,itemsep=0.3em]
+  \item \textbf{Lack of a unified digital channel :} reservations are taken by phone, e-mail or in person, generating ambiguity and loss of information.
+  \item \textbf{Manual user management :} user records and registrations are handled through spreadsheets, which is error-prone and not scalable.
+  \item \textbf{No real-time visibility :} the management has no smart dashboard to track users, reservations or revenue.
+  \item \textbf{Limited communication :} no automatic notifications when a reservation is accepted, refused or modified.
+  \item \textbf{No integrated assistance :} users have no immediate way to ask for help, beyond classical e-mail support.
+\end{itemize}
+
+\subsection{Synthetic statistics on the existing situation}
+
+To quantify the problem, we conducted a small internal survey within the host company. The chart below summarizes the main pain points reported by the staff.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=18pt,
+  width=13cm,
+  height=6.5cm,
+  ylabel={Reported impact (\%)},
+  symbolic x coords={Reservations, Tracking, Reporting, Communication, Support},
+  xtick=data,
+  ymin=0, ymax=100,
+  enlarge x limits=0.15,
+  nodes near coords,
+  nodes near coords style={font=\small\bfseries, color=primary},
+  every axis label/.append style={font=\small},
+  tick label style={font=\small},
+  legend pos=north east,
+  grid=both,
+  major grid style={color=gray!25},
+  minor grid style={color=gray!10}
+]
+  \addplot[fill=primary, draw=primary] coordinates {
+    (Reservations,82) (Tracking,74) (Reporting,68) (Communication,71) (Support,58)
+  };
+\end{axis}
+\end{tikzpicture}
+\caption{Pain points reported by the staff (internal survey, n = 12)}
+\label{fig:painpoints}
+\end{figure}
+
+% ---------- 1.4 Existing solutions ----------
+\section{Study of the Existing Solutions}
+
+Several training-management platforms exist on the market. We compared three of the most representative ones to identify what is missing and what we can do better.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|X|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Criteria} & \textbf{\color{white} Moodle} & \textbf{\color{white} Udemy Business} & \textbf{\color{white} Coursera}\\
+\hline
+Multi-actor management & Partial & Limited & Limited \\\hline
+Smart dashboard / KPIs & No & Partial & Partial \\\hline
+Integrated chatbot & No & No & No \\\hline
+Reservation workflow & No & No & No \\\hline
+Excel / PDF export & Partial & No & No \\\hline
+Local deployment cost & Free / Self-hosted & Paid & Paid \\\hline
+\end{tabularx}
+\caption{Comparative study of existing solutions}
+\label{tab:existing}
+\end{table}
+
+\subsection{Critique}
+
+The studied platforms are powerful for content delivery, but they remain generic. None of them provides a complete \textit{four-actor reservation workflow}, a \textit{smart dashboard with chatbot} and a \textit{multi-format export} (Excel/PDF) tailored for a Tunisian training center.
+
+% ---------- 1.5 Proposed solution ----------
+\section{Proposed Solution}
+
+We propose \textbf{ADVANCIA}, a smart, secure and responsive web platform that brings together every actor of the training process inside one ecosystem. The figure below summarizes the high-level functional architecture of the proposed solution.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  actor/.style={rectangle, draw=primary, fill=softblue, rounded corners=4pt,
+                minimum width=2.4cm, minimum height=0.9cm, align=center},
+  core/.style={ellipse, draw=primary, fill=primary, text=white,
+               minimum width=4cm, minimum height=2cm, align=center},
+  module/.style={rectangle, draw=secondary, fill=white, rounded corners=4pt,
+                 minimum width=2.6cm, minimum height=0.7cm, align=center}
+]
+  \node[core] (advancia) {\textbf{ADVANCIA}\\Platform};
+
+  \node[actor, above left=1.8cm and 2.6cm of advancia] (user) {\faUser\ User};
+  \node[actor, above right=1.8cm and 2.6cm of advancia] (trainer) {\faChalkboardTeacher\ Trainer};
+  \node[actor, below left=1.8cm and 2.6cm of advancia] (admin) {\faUserShield\ Admin};
+  \node[actor, below right=1.8cm and 2.6cm of advancia] (super) {\faUserCog\ Super-Admin};
+
+  \draw[->, thick, primary] (user) -- (advancia);
+  \draw[->, thick, primary] (trainer) -- (advancia);
+  \draw[->, thick, primary] (admin) -- (advancia);
+  \draw[->, thick, primary] (super) -- (advancia);
+
+  \node[module, right=4.2cm of advancia] (mod1) {Catalog};
+  \node[module, below=0.2cm of mod1] (mod2) {Reservations};
+  \node[module, below=0.2cm of mod2] (mod3) {Dashboard};
+  \node[module, below=0.2cm of mod3] (mod4) {Chatbot};
+  \node[module, below=0.2cm of mod4] (mod5) {Notifications};
+
+  \draw[->, dashed, secondary] (advancia.east) -- (mod1.west);
+  \draw[->, dashed, secondary] (advancia.east) -- (mod2.west);
+  \draw[->, dashed, secondary] (advancia.east) -- (mod3.west);
+  \draw[->, dashed, secondary] (advancia.east) -- (mod4.west);
+  \draw[->, dashed, secondary] (advancia.east) -- (mod5.west);
+\end{tikzpicture}
+\caption{High-level overview of the ADVANCIA platform}
+\label{fig:advancia}
+\end{figure}
+
+% ---------- 1.6 Methodology ----------
+\section{Adopted Methodology : Scrum}
+
+\subsection{Why agile ?}
+
+The functional perimeter of \textit{ADVANCIA} is broad and the requirements are likely to evolve. A \textbf{rigid waterfall} approach would have led to a tunnel effect : a long phase of specification, then a long development, then a single deliverable -- with all the risks that this implies. We therefore chose the \textbf{Scrum} agile framework, which is iterative, incremental and oriented around tangible value at the end of each cycle.
+
+\subsection{Scrum overview}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  bb/.style={rectangle, draw=primary, fill=softblue, rounded corners=4pt,
+             minimum width=2.4cm, minimum height=0.7cm, align=center},
+  arrowstyle/.style={->, thick, color=primary}
+]
+  \node[bb] (pb) {Product Backlog};
+  \node[bb, right=1.2cm of pb] (sp) {Sprint Planning};
+  \node[bb, right=1.2cm of sp] (sb) {Sprint Backlog};
+  \node[bb, below=1.0cm of sb] (sprint) {Sprint (2--3 weeks)};
+  \node[bb, left=1.2cm of sprint] (review) {Review};
+  \node[bb, left=1.2cm of review] (inc) {Increment};
+
+  \draw[arrowstyle] (pb) -- (sp);
+  \draw[arrowstyle] (sp) -- (sb);
+  \draw[arrowstyle] (sb) -- (sprint);
+  \draw[arrowstyle] (sprint) -- (review);
+  \draw[arrowstyle] (review) -- (inc);
+  \draw[arrowstyle] (inc) -- (pb);
+\end{tikzpicture}
+\caption{The Scrum cycle adopted in this project}
+\label{fig:scrum}
+\end{figure}
+
+\subsection{Scrum roles in our project}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\columncolor{softblue}}l|X|}
+\hline
+\rowcolor{primary}
+\textbf{\color{white} Role} & \textbf{\color{white} Holder \& mission}\\
+\hline
+Product Owner & Professional supervisor at ADVANCIA -- defines the vision and prioritizes the backlog. \\\hline
+Scrum Master & Academic supervisor at ISET Siliana -- enforces the process and removes blockers. \\\hline
+Development Team & Istabrak BEN KHMAYS \& Sayhi MAHDI -- design, develop, test and deliver the increments. \\\hline
+\end{tabularx}
+\caption{Scrum roles in the ADVANCIA project}
+\label{tab:scrumroles}
+\end{table}
+
+% ---------- Conclusion ----------
+\section{Conclusion}
+
+This first chapter has settled the foundations of our work : the host company, the context, the limits of existing solutions, the proposed platform and the agile process that will drive the implementation. The next chapter goes deeper, by capturing the full set of requirements and by translating them into a structured plan of releases and sprints.

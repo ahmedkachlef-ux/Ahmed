@@ -27,7 +27,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from rag_local import LocalRAG, VULN_QUERIES
 from crawler import SmartCrawler, Sitemap
 
-# ═══ Config ════════════════════════════════════════════════════════════════
+# ═══ Config ══════════════════════════════════════════════════════════════════════
 API_KEY = os.environ.get(
     "HACKTRICKS_API_KEY",
     "htk_eee2307410d82d82f26c8711b1ec21903430b374feff1a1729f968e8f4500e11",
@@ -43,7 +43,7 @@ ALLOWED_DOMAINS: List[str] = []  # e.g. ["*.example.com"]
 DEBUG = False
 
 
-# ═══ Debug logger ═════════════════════════════════════════════════════════
+# ═══ Debug logger ═════════════════════════════════════════════════════════════════
 class ThinkLogger:
     BORDER = "═" * 72
     counter = 0
@@ -83,7 +83,7 @@ class ThinkLogger:
     def llm_response(cls, msg): cls._box("LLM RESPONSE", "📥", msg[:600])
 
 
-# ═══ Data models ══════════════════════════════════════════════════════════
+# ═══ Data models ══════════════════════════════════════════════════════════════════
 @dataclass
 class Finding:
     severity: str
@@ -153,14 +153,14 @@ class PentestState:
         )
 
 
-# ═══ Tool executor ════════════════════════════════════════════════════════
+# ═══ Tool executor ════════════════════════════════════════════════════════════════
 class ToolExecutor:
     def __init__(self, state: PentestState, dry_run: bool = False):
         self.state = state
         self.dry_run = dry_run
         self.auto_install = False
 
-    # ── safety helpers ────────────────────────────────────────────────
+    # ── safety helpers ────────────────────────────────────────────
     def _in_scope(self, url: str) -> bool:
         if not ALLOWED_DOMAINS:
             return True
@@ -215,7 +215,7 @@ class ToolExecutor:
         except Exception as e:
             return -1, "", str(e)
 
-    # ── recon ─────────────────────────────────────────────────────────
+    # ── recon ──────────────────────────────────────────────────
     def probe_target(self, url: str) -> Dict:
         if not self._in_scope(url):
             return {"error": "out of scope"}
@@ -294,7 +294,7 @@ class ToolExecutor:
                 ))
         return out
 
-    # ── external tools ────────────────────────────────────────────────
+    # ── external tools ────────────────────────────────────────────
     def nmap(self, host: str, top_ports: int = 100) -> Dict:
         if not self._ensure_tool("nmap"):
             return {"error": "nmap not installed"}
@@ -338,7 +338,6 @@ class ToolExecutor:
         if not self._ensure_tool("wafw00f"):
             return {"error": "wafw00f not installed"}
         rc, out, err = self._run(["wafw00f", "-a", url], timeout=60)
-        # robust WAF name extraction
         waf = ""
         patterns = [
             r"is behind\s+(.+?)\s+\(",
@@ -472,7 +471,7 @@ class ToolExecutor:
             pass
         return {"vulnerable": False}
 
-    # ── dispatcher ────────────────────────────────────────────────────
+    # ── dispatcher ──────────────────────────────────────────────────
     def execute(self, tool: str, params: Dict) -> Dict:
         ThinkLogger.act(f"Tool   : {tool}\nParams : {json.dumps(params)}")
         m = {
@@ -502,7 +501,7 @@ class ToolExecutor:
             return {"error": str(e)}
 
 
-# ═══ LLM ══════════════════════════════════════════════════════════════════
+# ═══ LLM ════════════════════════════════════════════════════════════════════════
 class LLM:
     def __init__(self):
         self.thread_id: Optional[str] = None
@@ -540,22 +539,18 @@ def _parse_plan(raw: str) -> List[Task]:
         return []
     text = raw.strip()
     text = re.sub(r"^```(?:json)?", "", text).rstrip("`").strip()
-    # smart quotes / dashes
     text = (text.replace("“", '"').replace("”", '"')
                 .replace("‘", "'").replace("’", "'")
                 .replace("—", "-").replace("–", "-"))
-    # find array
     m = re.search(r"\[.*\]", text, re.DOTALL)
     if not m:
         return []
     arr_text = m.group(0)
-    # strip trailing commas
     arr_text = re.sub(r",(\s*[}\]])", r"\1", arr_text)
 
     try:
         data = json.loads(arr_text)
     except Exception:
-        # fallback — extract individual {...} objects
         objs = []
         for om in re.finditer(r"\{[^{}]*\}", arr_text, re.DOTALL):
             try:
@@ -577,7 +572,7 @@ def _parse_plan(raw: str) -> List[Task]:
     return tasks
 
 
-# ═══ ReAct agent ══════════════════════════════════════════════════════════
+# ═══ ReAct agent ════════════════════════════════════════════════════════════════
 class ReActAgent:
     def __init__(self, target: str, objective: str, dry_run: bool = False,
                  use_playwright: bool = False, auto_install: bool = False,
@@ -590,7 +585,6 @@ class ReActAgent:
         self.use_playwright = use_playwright
         self.max_iter = max_iter
 
-    # ── small helper: pull KB context for current state ───────────────
     def _kb(self, query: str, k: int = 5) -> str:
         if not self.rag.ready:
             ThinkLogger.rag("Local RAG index not built. Run: python rag_local.py --index")
@@ -601,23 +595,20 @@ class ReActAgent:
 
     def run(self):
         print(f"\n{'═'*72}")
-        print(f"  🕷  Smart Web Pentest Agent")
+        print(f"  \U0001f577️  Smart Web Pentest Agent")
         print(f"  Target : {self.state.target}")
         print(f"  Goal   : {self.state.objective}")
         print(f"{'═'*72}\n")
 
-        # Phase 1 — Recon
-        print("[Phase 1] 🔍 Initial recon...")
+        print("[Phase 1] \U0001f50d Initial recon...")
         self.state.recon = self.executor.probe_target(self.state.target)
         ThinkLogger.observe(json.dumps(self.state.recon, indent=2)[:1200])
 
-        # Phase 2 — External tooling for tech fingerprinting
-        print("\n[Phase 2] 🧰 Tech fingerprint + WAF...")
+        print("\n[Phase 2] \U0001f9f0 Tech fingerprint + WAF...")
         self.executor.execute("whatweb", {"url": self.state.target})
         self.executor.execute("wafw00f", {"url": self.state.target})
 
-        # Phase 3 — Crawl & sitemap
-        print("\n[Phase 3] 🕸  Crawling & building sitemap...")
+        print("\n[Phase 3] \U0001f578️  Crawling & building sitemap...")
         crawler = SmartCrawler(
             self.state.target,
             max_pages=40,
@@ -628,12 +619,10 @@ class ReActAgent:
         self.state.sitemap = sitemap
         sitemap.print_sitemap()
 
-        # Phase 4 — Per-endpoint vuln matrix (driven by RAG knowledge)
-        print("\n[Phase 4] 🎯 Endpoint vulnerability matrix...")
+        print("\n[Phase 4] \U0001f3af Endpoint vulnerability matrix...")
         self._scan_endpoints()
 
-        # Phase 5 — Adaptive ReAct loop
-        print(f"\n[Phase 5] 🧠 ReAct loop (max {self.max_iter})...")
+        print(f"\n[Phase 5] \U0001f9e0 ReAct loop (max {self.max_iter})...")
         kb = self._kb(
             f"web pentest {self.state.objective} "
             f"{self.state.recon.get('tech_stack', {}).get('server', '')}",
@@ -663,7 +652,6 @@ class ReActAgent:
                 t.result = "manual review"
             t.status = "done"
 
-            # Reflect / decide if we add follow-ups
             reflect = self.llm.chat(
                 f"Task {t.id} completed.\nResult:\n{t.result[:1200]}\n\n"
                 f"State:\n{self.state.to_context()}\n\n"
@@ -672,7 +660,6 @@ class ReActAgent:
             )
             ThinkLogger.think(reflect)
 
-            # Add a single follow-up if model strongly suggests one
             for vuln, kw in [("sqli", "sql injection"), ("xss", "xss"),
                               ("ssti", "template injection"), ("idor", "idor")]:
                 if kw in reflect.lower() and not any(
@@ -687,11 +674,9 @@ class ReActAgent:
 
         self.report()
 
-    # ── per-endpoint vuln matrix ──────────────────────────────────────
     def _scan_endpoints(self):
         if not self.state.sitemap:
             return
-        # Pull payload knowledge once per vuln class
         payloads_ctx = {
             "xss": self.rag.for_vector("xss") if self.rag.ready else "",
             "sqli": self.rag.for_vector("sqli") if self.rag.ready else "",
@@ -717,10 +702,9 @@ class ReActAgent:
                     self.executor.execute("open_redirect_test", {"url": ep.url, "param": p})
             tested += 1
 
-    # ── reporting ─────────────────────────────────────────────────────
     def report(self):
         print(f"\n{'═'*72}")
-        print("[Phase 6] 📄 Report")
+        print("[Phase 6] \U0001f4c4 Report")
         os.makedirs(REPORT_DIR, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         base = os.path.join(REPORT_DIR, f"pentest_{ts}")
@@ -763,7 +747,7 @@ class ReActAgent:
         print(f"{'═'*72}\n")
 
 
-# ═══ CLI ══════════════════════════════════════════════════════════════════
+# ═══ CLI ═════════════════════════════════════════════════════════════════════════
 def main():
     ap = argparse.ArgumentParser(description="Smart Web Pentest Agent")
     ap.add_argument("target", nargs="?")

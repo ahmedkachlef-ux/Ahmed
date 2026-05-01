@@ -30,7 +30,7 @@ class Endpoint:
     form_fields: List[str] = field(default_factory=list)
     content_type: str = ""
     status: int = 0
-    source: str = "html"  # html | js | form | api | playwright
+    source: str = "html"
 
     def to_dict(self):
         return asdict(self)
@@ -43,12 +43,11 @@ class Sitemap:
     js_files: Set[str] = field(default_factory=set)
     forms: List[Dict] = field(default_factory=list)
     api_endpoints: Set[str] = field(default_factory=set)
-    parameters: Dict[str, Set[str]] = field(default_factory=dict)  # url → params
+    parameters: Dict[str, Set[str]] = field(default_factory=dict)
 
     def add_endpoint(self, ep: Endpoint):
         for existing in self.endpoints:
             if existing.url == ep.url and existing.method == ep.method:
-                # merge params
                 merged = list(set(existing.params) | set(ep.params))
                 existing.params = merged
                 return
@@ -73,7 +72,7 @@ class Sitemap:
 
     def print_sitemap(self):
         print("\n" + "═" * 70)
-        print(f"  🗺  SITEMAP — {self.target}")
+        print(f"  \U0001f5fa️  SITEMAP — {self.target}")
         print("═" * 70)
         s = self.to_dict()["summary"]
         print(f"  Endpoints  : {s['total_endpoints']}  (with params: {s['with_params']})")
@@ -136,7 +135,6 @@ class SmartCrawler:
         try:
             absu = urllib.parse.urljoin(base, link)
             parsed = urllib.parse.urlparse(absu)
-            # drop fragment
             cleaned = parsed._replace(fragment="").geturl()
             return cleaned
         except Exception:
@@ -152,7 +150,6 @@ class SmartCrawler:
     def _parse_html(self, url: str, html: str, status: int, ctype: str):
         soup = BeautifulSoup(html, "lxml")
 
-        # Record this page itself
         params = self._extract_params(url)
         ep = Endpoint(url=url, method="GET", params=params,
                      content_type=ctype, status=status, source="html")
@@ -160,14 +157,12 @@ class SmartCrawler:
         if params:
             self.sitemap.parameters.setdefault(url.split("?")[0], set()).update(params)
 
-        # Links
         new_urls = []
         for a in soup.find_all("a", href=True):
             nu = self._normalize(url, a["href"])
             if nu and self._same_host(nu):
                 new_urls.append(nu)
 
-        # Forms
         for form in soup.find_all("form"):
             action = self._normalize(url, form.get("action") or url)
             method = (form.get("method") or "GET").upper()
@@ -187,7 +182,6 @@ class SmartCrawler:
                     form_fields=fields, source="form",
                 ))
 
-        # JS files + API hints from inline scripts
         for sc in soup.find_all("script"):
             src = sc.get("src")
             if src:
@@ -195,8 +189,7 @@ class SmartCrawler:
                 if nu:
                     self.sitemap.js_files.add(nu)
             elif sc.string:
-                # Crude API endpoint extraction from JS
-                for m in re.finditer(r"""['"](/[a-zA-Z0-9_\-/.]+(?:/api|/v\d+)[a-zA-Z0-9_\-/.]*)['"]""", sc.string):
+                for m in re.finditer(r"""['"](\/[a-zA-Z0-9_\-/.]+(?:\/api|\/v\d+)[a-zA-Z0-9_\-/.]*)['"]""", sc.string):
                     self.sitemap.api_endpoints.add(m.group(1))
                 for m in re.finditer(r"""fetch\(['"]([^'"]+)['"]""", sc.string):
                     self.sitemap.api_endpoints.add(m.group(1))
@@ -209,7 +202,7 @@ class SmartCrawler:
             if r.status_code != 200:
                 return
             text = r.text
-            for m in re.finditer(r"""['"](/[a-zA-Z0-9_\-/.]+(?:/api|/v\d+)[a-zA-Z0-9_\-/.]*)['"]""", text):
+            for m in re.finditer(r"""['"](\/[a-zA-Z0-9_\-/.]+(?:\/api|\/v\d+)[a-zA-Z0-9_\-/.]*)['"]""", text):
                 self.sitemap.api_endpoints.add(m.group(1))
             for m in re.finditer(r"""(?:fetch|axios\.\w+|\$\.(?:get|post|ajax))\(\s*['"]([^'"]+)['"]""", text):
                 self.sitemap.api_endpoints.add(m.group(1))
@@ -222,7 +215,6 @@ class SmartCrawler:
         else:
             self._crawl_requests()
 
-        # Scan top JS files for additional API hints
         for js in list(self.sitemap.js_files)[:10]:
             self._scan_js_file(js)
 
@@ -263,7 +255,6 @@ class SmartCrawler:
                 ctx = browser.new_context(ignore_https_errors=True)
                 page = ctx.new_page()
 
-                # Capture network requests as they happen
                 def on_request(req):
                     u = req.url
                     if not self._same_host(u):

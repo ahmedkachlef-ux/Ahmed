@@ -34,7 +34,7 @@ except ImportError:
     chromadb = None
 
 
-# ── Pickle compatibility shim ──────────────────────────────────────────────
+# ── Pickle compatibility shim ───────────────────────────────────────────────────────
 # When the index is built by running this file directly (__main__), Chunk
 # gets pickled as __main__.Chunk. When agent1.py imports rag_local, the same
 # class is now rag_local.Chunk and pickle can't find it. Register both names.
@@ -53,7 +53,7 @@ def _pickle_shim():
                     setattr(existing, attr, getattr(current, attr))
 
 
-# ── Config ─────────────────────────────────────────────────────────────────
+# ── Config ───────────────────────────────────────────────────────────────────────
 INDEX_DIR = os.path.expanduser("~/.guardian_index")
 KNOWLEDGE_SOURCES = [
     ("hacktricks", os.path.expanduser("~/hacktricks")),
@@ -62,9 +62,9 @@ KNOWLEDGE_SOURCES = [
     ("owasp-wstg", os.path.expanduser("~/owasp-wstg")),
 ]
 
-CHUNK_SIZE = 800       # chars
+CHUNK_SIZE = 800
 CHUNK_OVERLAP = 150
-EMBED_MODEL = "all-MiniLM-L6-v2"  # small, fast, decent quality
+EMBED_MODEL = "all-MiniLM-L6-v2"
 
 VULN_QUERIES = {
     "xss": "reflected stored DOM XSS payloads bypass filters",
@@ -85,7 +85,7 @@ VULN_QUERIES = {
 }
 
 
-# ── Data model ─────────────────────────────────────────────────────────────
+# ── Data model ───────────────────────────────────────────────────────────────────
 @dataclass
 class Chunk:
     id: str
@@ -96,7 +96,7 @@ class Chunk:
     tokens: List[str] = field(default_factory=list)
 
 
-# ── Indexer ────────────────────────────────────────────────────────────────
+# ── Indexer ──────────────────────────────────────────────────────────────────────
 class LocalIndexer:
     def __init__(self, index_dir: str = INDEX_DIR):
         self.index_dir = index_dir
@@ -124,8 +124,7 @@ class LocalIndexer:
         return files
 
     def _chunk_text(self, text: str, source: str, path: str) -> List[Chunk]:
-        # Strip markdown noise lightly
-        text = re.sub(r"```[\s\S]*?```", lambda m: m.group(0), text)  # keep code blocks
+        text = re.sub(r"```[\s\S]*?```", lambda m: m.group(0), text)
         title_match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
         title = title_match.group(1).strip() if title_match else os.path.basename(path)
 
@@ -165,12 +164,10 @@ class LocalIndexer:
             print("[indexer] No chunks built. Did you clone the knowledge bases?")
             return
 
-        # 1. Save chunks
         with open(self.chunks_path, "wb") as f:
             pickle.dump(all_chunks, f)
         print(f"[indexer] Saved chunks → {self.chunks_path}")
 
-        # 2. Build BM25
         if BM25Okapi is None:
             print("[indexer] rank_bm25 not installed; skipping BM25.")
         else:
@@ -181,7 +178,6 @@ class LocalIndexer:
                 pickle.dump(bm25, f)
             print(f"[indexer] Saved BM25 → {self.bm25_path}")
 
-        # 3. Build embeddings via Chroma
         if SentenceTransformer is None or chromadb is None:
             print("[indexer] sentence-transformers/chromadb not installed; skipping embeddings.")
             return
@@ -211,7 +207,7 @@ class LocalIndexer:
         print("[indexer] Done.")
 
 
-# ── Retrieval ──────────────────────────────────────────────────────────────
+# ── Retrieval ──────────────────────────────────────────────────────────────────────
 class LocalRAG:
     def __init__(self, index_dir: str = INDEX_DIR):
         self.index_dir = index_dir
@@ -278,13 +274,11 @@ class LocalRAG:
         return out
 
     def search(self, query: str, k: int = 5) -> List[Chunk]:
-        """Hybrid retrieval with reciprocal rank fusion."""
         if not self.ready:
             return []
         bm25_hits = self._bm25_search(query, k * 2)
         vec_hits = self._vector_search(query, k * 2)
 
-        # Reciprocal rank fusion
         rrf: Dict[str, float] = {}
         chunk_by_id: Dict[str, Chunk] = {}
         for rank, (ch, _) in enumerate(bm25_hits):
@@ -312,7 +306,6 @@ class LocalRAG:
         return "\n\n---\n\n".join(parts)
 
     def for_vector(self, vuln: str, target_info: Optional[Dict] = None, k: int = 5) -> str:
-        """Convenience: pull payloads/techniques for a specific vuln class."""
         base = VULN_QUERIES.get(vuln, vuln)
         if target_info:
             tech = target_info.get("server", "") or target_info.get("powered_by", "")
@@ -324,7 +317,7 @@ class LocalRAG:
 _pickle_shim()
 
 
-# ── CLI ────────────────────────────────────────────────────────────────────
+# ── CLI ────────────────────────────────────────────────────────────────────────────
 def main():
     import argparse
     p = argparse.ArgumentParser()
